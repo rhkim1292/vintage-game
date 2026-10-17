@@ -15,7 +15,7 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
 
 - **Last updated:** 2026-10-16, ~11:15 PM PT (end of session 1)
 - **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed.
-- **Next step:** Phase 1, step 1.1 (scaffold `UInventoryGrid`). The user already approved this, including adding `SlateCore` to `LD60.Build.cs`.
+- **Next step:** Phase 1, step 1.2: the user implements the `// TODO` bodies in `Source/LD60/Flipper/InventoryGrid.cpp` (mentor mode: hints and questions, no fixes unless asked) until all `Flipper.InventoryGrid.*` tests pass. Scaffold from 1.1 is uncommitted until the user says so.
 - **Blockers:** none. The Unreal editor must be closed before command-line builds.
 
 ---
@@ -74,7 +74,7 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
 
 ## Phase 1: Inventory grid logic (Fri night)
 
-- [ ] **1.1 Scaffold** (Claude)
+- [x] **1.1 Scaffold** (Claude) — done 2026-10-16 night; builds clean, all 10 `Flipper.InventoryGrid.*` tests fail as expected
   - Add `SlateCore` to `LD60.Build.cs` and the `LD60/Flipper` include paths.
   - Create a minimal `UFlipperItemDefinition` data asset with only what the grid needs: display name, width, height and icon. Item data fills in the rest later.
   - Create a minimal `FFlipperItemInstance` (an id plus its definition) and `FFlipperPlacement` (origin cell plus `bRotated`).

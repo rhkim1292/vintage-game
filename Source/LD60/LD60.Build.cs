@@ -18,6 +18,7 @@ public class LD60 : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
+				"SlateCore",
 			"Slate"
 		});
 
@@ -25,7 +26,8 @@ public class LD60 : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"LD60",
-			"LD60/Variant_Platforming",
+			"LD60/Flipper",
+				"LD60/Variant_Platforming",
 			"LD60/Variant_Platforming/Animation",
 			"LD60/Variant_Combat",
 			"LD60/Variant_Combat/AI",
