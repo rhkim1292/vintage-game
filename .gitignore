@@ -1,0 +1,54 @@
+# Unreal Engine generated folders (rebuilt by the editor / UnrealBuildTool)
+/Binaries/
+/DerivedDataCache/
+/Intermediate/
+/Saved/
+/Plugins/**/Binaries/
+/Plugins/**/Intermediate/
+
+# Packaged builds (root only, so Config/Windows/ stays tracked)
+/Packaged/
+/Windows/
+/WindowsNoEditor/
+
+# IDE project files (regenerate with "Generate Visual Studio / VS Code project files")
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.code-workspace
+.ignore
+
+# Compiled / intermediate build artifacts
+*.slo
+*.lo
+*.o
+*.pch
+*.gch
+*.dll
+*.dylib
+*.so
+*.lib
+*.a
+*.exe
+*.app
+*.ipa
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
+
+# Cooked content and crash logs
+Content/StarterContent/Cooked/
+*.cooked
+*.log
+
+# OS clutter
+Thumbs.db
+desktop.ini
+.DS_Store
