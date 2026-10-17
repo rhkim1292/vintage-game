@@ -75,6 +75,11 @@ public:
 
 private:
 
+#if WITH_DEV_AUTOMATION_TESTS
+	// Lets the CellIndex automation test call the private index helper directly.
+	friend class FFlipperGridCellIndexTest;
+#endif
+
 	int32 GridWidth = 0;
 	int32 GridHeight = 0;
 
@@ -85,4 +90,13 @@ private:
 	 */
 	UPROPERTY()
 	TArray<FFlipperPlacedItem> PlacedItems;
+
+	TArray<int32> ItemGrid;
+
+	/**
+	 * Converts a point to an ItemGrid cell index. The index is represented by a single int32 value.
+	 */
+	int32 ConvertPointToItemGridCell(int32 X, int32 Y) const;
+
+	TArray<int32> GetCoveredCellsByDefinedItem(UFlipperItemDefinition* Definition, FIntPoint Origin, bool bRotated) const;
 };

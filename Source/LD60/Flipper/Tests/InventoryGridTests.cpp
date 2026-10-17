@@ -371,4 +371,74 @@ bool FFlipperGridFirstFitNoneTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridCellIndexTest, "Flipper.InventoryGrid.CellIndex", FLIPPER_GRID_TEST_FLAGS)
+bool FFlipperGridCellIndexTest::RunTest(const FString& Parameters)
+{
+	// Row-major: a row is Width cells long, so (X, Y) is X + Width * Y.
+	{
+		FGridFixture F(5, 4);
+		TestEqual(TEXT("top-left is 0"), F.Grid->ConvertPointToItemGridCell(0, 0), 0);
+		TestEqual(TEXT("end of the first row is Width-1"), F.Grid->ConvertPointToItemGridCell(4, 0), 4);
+		TestEqual(TEXT("start of the second row is Width"), F.Grid->ConvertPointToItemGridCell(0, 1), 5);
+		TestEqual(TEXT("an inner cell"), F.Grid->ConvertPointToItemGridCell(2, 2), 12);
+		TestEqual(TEXT("bottom-right is Width*Height-1"), F.Grid->ConvertPointToItemGridCell(4, 3), 19);
+	}
+
+	// Every cell gets its own index, counting up row by row with no gaps and no repeats.
+	{
+		FGridFixture F(5, 4);
+		int32 Expected = 0;
+		bool bAllMatch = true;
+		for (int32 Y = 0; Y < 4; ++Y)
+		{
+			for (int32 X = 0; X < 5; ++X)
+			{
+				bAllMatch &= (F.Grid->ConvertPointToItemGridCell(X, Y) == Expected);
+				++Expected;
+			}
+		}
+		TestTrue(TEXT("cells map to 0..19 in reading order"), bAllMatch);
+	}
+
+	// A grid that is taller than it is wide would expose a Width/Height mix-up.
+	{
+		FGridFixture F(3, 7);
+		TestEqual(TEXT("tall grid: (2,0)"), F.Grid->ConvertPointToItemGridCell(2, 0), 2);
+		TestEqual(TEXT("tall grid: (0,6)"), F.Grid->ConvertPointToItemGridCell(0, 6), 18);
+		TestEqual(TEXT("tall grid: bottom-right"), F.Grid->ConvertPointToItemGridCell(2, 6), 20);
+	}
+
+	// Cells outside the grid must not give a usable array index, and must not look like "empty cell" either:
+	// the grid stores INDEX_NONE in empty cells, so returning INDEX_NONE would be easy to mistake for a cell.
+	{
+		FGridFixture F(5, 4);
+		const FIntPoint OutsideCells[] = {
+			FIntPoint(-1, 0), FIntPoint(0, -1), FIntPoint(-1, -1),
+			FIntPoint(5, 0), FIntPoint(0, 4), FIntPoint(5, 4),
+			FIntPoint(4, 4), FIntPoint(5, 3),
+		};
+		for (const FIntPoint& Cell : OutsideCells)
+		{
+			const int32 Index = F.Grid->ConvertPointToItemGridCell(Cell.X, Cell.Y);
+			TestTrue(*FString::Printf(TEXT("(%d,%d) is not a valid index"), Cell.X, Cell.Y), Index < 0 || Index >= 5 * 4);
+			TestNotEqual(*FString::Printf(TEXT("(%d,%d) is not confusable with an empty cell"), Cell.X, Cell.Y), Index, static_cast<int32>(INDEX_NONE));
+		}
+
+		// X = Width must be rejected, not wrapped onto the next row (this is the easy one to miss).
+		TestTrue(TEXT("(5,0) does not wrap to (0,1)"), F.Grid->ConvertPointToItemGridCell(5, 0) != F.Grid->ConvertPointToItemGridCell(0, 1));
+	}
+
+	// Init again with a different size and the mapping follows the new width.
+	{
+		FGridFixture F(5, 4);
+		F.Grid->Init(2, 6);
+		TestEqual(TEXT("after re-Init: (1,1) is 3"), F.Grid->ConvertPointToItemGridCell(1, 1), 3);
+		TestEqual(TEXT("after re-Init: (1,5) is 11"), F.Grid->ConvertPointToItemGridCell(1, 5), 11);
+		TestTrue(TEXT("after re-Init: (2,0) is now outside"), F.Grid->ConvertPointToItemGridCell(2, 0) < 0);
+	}
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

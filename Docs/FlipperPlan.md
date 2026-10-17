@@ -13,9 +13,9 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
 
 ## Where we are
 
-- **Last updated:** 2026-10-16, ~11:15 PM PT (end of session 1)
-- **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed.
-- **Next step:** Phase 1, step 1.2: the user implements the `// TODO` bodies in `Source/LD60/Flipper/InventoryGrid.cpp` (mentor mode: hints and questions, no fixes unless asked) until all `Flipper.InventoryGrid.*` tests pass. Scaffold from 1.1 is uncommitted until the user says so.
+- **Last updated:** 2026-10-17, early morning PT (mid-session 2, user taking a break during Phase 1.2)
+- **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed; Phase 1.1 scaffold committed (c5575bc, local). In 1.2 the user has implemented `GetFootprint`, `Init`, `CanPlace`, `TryPlace`, `Remove`, the cell-index helper `ConvertPointToItemGridCell` and a covered-cells helper `GetCoveredCellsByDefinedItem`. 4 of 11 `Flipper.InventoryGrid.*` tests pass (Footprint, Bounds, CellIndex, OnChanged); the rest only fail on the two stubs below.
+- **Next step:** Phase 1.2, remaining: the user writes `FindItemAt` (look up `ItemGrid`, then find the entry in `PlacedItems` by id; nullptr for empty or out-of-range) and then `FindFirstFit` (row by row, per cell unrotated then rotated), still mentor mode (hints and questions, no fixes unless asked). Open review notes for `Remove`: it passes the caller's `Item.Definition` to the cell helper, which should use the stored entry's definition instead. Then rerun all tests, then 1.3 and 1.4. The user commits manually; Claude writes the commit message.
 - **Blockers:** none. The Unreal editor must be closed before command-line builds.
 
 ---
