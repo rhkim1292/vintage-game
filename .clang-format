@@ -1,0 +1,66 @@
+# Unreal Engine C++ formatting (Epic Coding Standard: Allman braces, tabs, left-aligned pointers).
+#
+# Based on TensorWorks/UE-Clang-Format (MIT License):
+#   https://github.com/TensorWorks/UE-Clang-Format
+#
+# Known limitations (clang-format, not this config):
+#   - Method chaining and Slate's `+ SWidget` `[ ]` syntax are not formatted consistently.
+#   - Single-line lambdas cannot be kept with Allman braces.
+#
+# This file applies to everything below the project root, including Plugins/.
+# Only format files under Source/ to avoid noisy plugin diffs.
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# UE reflection macros that are followed by a declaration and have no trailing semicolon.
+StatementMacros: ['UPROPERTY', 'UFUNCTION', 'UCLASS', 'USTRUCT', 'UENUM', 'UINTERFACE', 'GENERATED_BODY', 'GENERATED_UCLASS_BODY']
+
+AccessModifierOffset: -4
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveDeclarations: true
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: true
+  IndentBraces: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+BreakInheritanceList: AfterColon
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeComma
+BreakStringLiterals: false
+ColumnLimit: 0
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+Cpp11BracedListStyle: false
+EmptyLineBeforeAccessModifier: LogicalBlock
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+NamespaceIndentation: All
+PointerAlignment: Left
+# UE requires the matching .h to be included first and #include "*.generated.h" last,
+# so never let clang-format reorder includes.
+SortIncludes: false
+SpaceBeforeCaseColon: false
+TabWidth: 4
+UseTab: Always

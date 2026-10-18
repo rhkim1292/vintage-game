@@ -7,18 +7,18 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "UObject/StrongObjectPtr.h"
-#include "InventoryGrid.h"
-#include "FlipperItemDefinition.h"
+	#include "UObject/StrongObjectPtr.h"
+	#include "InventoryGrid.h"
+	#include "FlipperItemDefinition.h"
 
 namespace FlipperGridTests
 {
 	/** A grid plus a factory for items of any size. Keeps the UObjects alive for the length of one test. */
 	struct FGridFixture
 	{
-		TStrongObjectPtr<UInventoryGrid> Grid;
+		TStrongObjectPtr<UInventoryGrid>				 Grid;
 		TArray<TStrongObjectPtr<UFlipperItemDefinition>> Definitions;
-		int32 NextItemId = 1;
+		int32											 NextItemId = 1;
 
 		FGridFixture(int32 Width, int32 Height)
 		{
@@ -47,9 +47,9 @@ namespace FlipperGridTests
 			return Placed ? Placed->Item.Id : INDEX_NONE;
 		}
 	};
-}
+} // namespace FlipperGridTests
 
-#define FLIPPER_GRID_TEST_FLAGS (EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	#define FLIPPER_GRID_TEST_FLAGS (EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 using namespace FlipperGridTests;
 
@@ -58,7 +58,7 @@ using namespace FlipperGridTests;
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridFootprintTest, "Flipper.InventoryGrid.Footprint", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridFootprintTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(4, 4);
+	FGridFixture			   F(4, 4);
 	const FFlipperItemInstance Wide = F.MakeItem(3, 1);
 	const FFlipperItemInstance Square = F.MakeItem(2, 2);
 
@@ -75,7 +75,7 @@ bool FFlipperGridFootprintTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridBoundsTest, "Flipper.InventoryGrid.Bounds", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridBoundsTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(5, 4);
+	FGridFixture			   F(5, 4);
 	const FFlipperItemInstance Item = F.MakeItem(3, 2);
 
 	// Unrotated 3x2 in a 5x4 grid: origin X may be 0..2 and origin Y may be 0..2.
@@ -106,7 +106,7 @@ bool FFlipperGridBoundsTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridOverlapTest, "Flipper.InventoryGrid.Overlap", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridOverlapTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(5, 4);
+	FGridFixture			   F(5, 4);
 	const FFlipperItemInstance A = F.MakeItem(2, 2);
 	const FFlipperItemInstance B = F.MakeItem(2, 2);
 
@@ -140,7 +140,7 @@ bool FFlipperGridOverlapTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridRotatedFootprintTest, "Flipper.InventoryGrid.RotatedFootprint", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridRotatedFootprintTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(5, 5);
+	FGridFixture			   F(5, 5);
 	const FFlipperItemInstance Bar = F.MakeItem(3, 1);
 	const FFlipperItemInstance Dot = F.MakeItem(1, 1);
 
@@ -162,7 +162,7 @@ bool FFlipperGridRotatedFootprintTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridRemoveAndReplaceTest, "Flipper.InventoryGrid.RemoveAndReplace", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridRemoveAndReplaceTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(4, 4);
+	FGridFixture			   F(4, 4);
 	const FFlipperItemInstance A = F.MakeItem(2, 2);
 	const FFlipperItemInstance Stranger = F.MakeItem(1, 1);
 
@@ -191,7 +191,7 @@ bool FFlipperGridRemoveAndReplaceTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridFindItemAtTest, "Flipper.InventoryGrid.FindItemAt", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridFindItemAtTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(6, 4);
+	FGridFixture			   F(6, 4);
 	const FFlipperItemInstance Block = F.MakeItem(3, 2);
 	const FFlipperItemInstance Bar = F.MakeItem(2, 1);
 
@@ -238,7 +238,7 @@ bool FFlipperGridFindItemAtTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridOnChangedTest, "Flipper.InventoryGrid.OnChanged", FLIPPER_GRID_TEST_FLAGS)
 bool FFlipperGridOnChangedTest::RunTest(const FString& Parameters)
 {
-	FGridFixture F(3, 3);
+	FGridFixture			   F(3, 3);
 	const FFlipperItemInstance A = F.MakeItem(2, 2);
 	const FFlipperItemInstance B = F.MakeItem(2, 2);
 
@@ -261,7 +261,7 @@ bool FFlipperGridOnChangedTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("a successful Remove broadcasts once"), Broadcasts, 2);
 
 	FIntPoint Origin;
-	bool bRotated = false;
+	bool	  bRotated = false;
 	F.Grid->FindFirstFit(A, Origin, bRotated);
 	TestEqual(TEXT("FindFirstFit does not broadcast"), Broadcasts, 2);
 	return true;
@@ -273,8 +273,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridFirstFitUnrotatedTest, "Flipper.Inv
 bool FFlipperGridFirstFitUnrotatedTest::RunTest(const FString& Parameters)
 {
 	FGridFixture F(4, 3);
-	FIntPoint Origin(-1, -1);
-	bool bRotated = true;
+	FIntPoint	 Origin(-1, -1);
+	bool		 bRotated = true;
 
 	// An empty grid: the very first cell, not rotated (unrotated is preferred when both work).
 	const FFlipperItemInstance Pair = F.MakeItem(2, 1);
@@ -305,11 +305,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridFirstFitRotatedTest, "Flipper.Inven
 bool FFlipperGridFirstFitRotatedTest::RunTest(const FString& Parameters)
 {
 	FIntPoint Origin(-1, -1);
-	bool bRotated = false;
+	bool	  bRotated = false;
 
 	// A 4x1 item in a 3-wide, 4-tall grid only fits standing up.
 	{
-		FGridFixture F(3, 4);
+		FGridFixture			   F(3, 4);
 		const FFlipperItemInstance Long = F.MakeItem(4, 1);
 		TestTrue(TEXT("fits when turned"), F.Grid->FindFirstFit(Long, Origin, bRotated));
 		TestTrue(TEXT("top-left"), Origin == FIntPoint(0, 0));
@@ -340,7 +340,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperGridFirstFitNoneTest, "Flipper.Inventor
 bool FFlipperGridFirstFitNoneTest::RunTest(const FString& Parameters)
 {
 	FIntPoint Origin;
-	bool bRotated = false;
+	bool	  bRotated = false;
 
 	// A completely full grid.
 	{
@@ -389,8 +389,8 @@ bool FFlipperGridCellIndexTest::RunTest(const FString& Parameters)
 	// Every cell gets its own index, counting up row by row with no gaps and no repeats.
 	{
 		FGridFixture F(5, 4);
-		int32 Expected = 0;
-		bool bAllMatch = true;
+		int32		 Expected = 0;
+		bool		 bAllMatch = true;
 		for (int32 Y = 0; Y < 4; ++Y)
 		{
 			for (int32 X = 0; X < 5; ++X)
@@ -413,11 +413,16 @@ bool FFlipperGridCellIndexTest::RunTest(const FString& Parameters)
 	// Cells outside the grid must not give a usable array index, and must not look like "empty cell" either:
 	// the grid stores INDEX_NONE in empty cells, so returning INDEX_NONE would be easy to mistake for a cell.
 	{
-		FGridFixture F(5, 4);
+		FGridFixture	F(5, 4);
 		const FIntPoint OutsideCells[] = {
-			FIntPoint(-1, 0), FIntPoint(0, -1), FIntPoint(-1, -1),
-			FIntPoint(5, 0), FIntPoint(0, 4), FIntPoint(5, 4),
-			FIntPoint(4, 4), FIntPoint(5, 3),
+			FIntPoint(-1, 0),
+			FIntPoint(0, -1),
+			FIntPoint(-1, -1),
+			FIntPoint(5, 0),
+			FIntPoint(0, 4),
+			FIntPoint(5, 4),
+			FIntPoint(4, 4),
+			FIntPoint(5, 3),
 		};
 		for (const FIntPoint& Cell : OutsideCells)
 		{

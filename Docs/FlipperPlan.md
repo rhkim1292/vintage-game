@@ -13,9 +13,9 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
 
 ## Where we are
 
-- **Last updated:** 2026-10-17, early morning PT (mid-session 2, user taking a break during Phase 1.2)
-- **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed; Phase 1.1 scaffold committed (c5575bc, local). In 1.2 the user has implemented `GetFootprint`, `Init`, `CanPlace`, `TryPlace`, `Remove`, the cell-index helper `ConvertPointToItemGridCell` and a covered-cells helper `GetCoveredCellsByDefinedItem`. 4 of 11 `Flipper.InventoryGrid.*` tests pass (Footprint, Bounds, CellIndex, OnChanged); the rest only fail on the two stubs below.
-- **Next step:** Phase 1.2, remaining: the user writes `FindItemAt` (look up `ItemGrid`, then find the entry in `PlacedItems` by id; nullptr for empty or out-of-range) and then `FindFirstFit` (row by row, per cell unrotated then rotated), still mentor mode (hints and questions, no fixes unless asked). Open review notes for `Remove`: it passes the caller's `Item.Definition` to the cell helper, which should use the stored entry's definition instead. Then rerun all tests, then 1.3 and 1.4. The user commits manually; Claude writes the commit message.
+- **Last updated:** 2026-10-17, ~11 PM PT (session 3: Phase 1 finished, Phase 2.1 begun)
+- **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed; Phase 1.1 scaffold (c5575bc). Phase 1.2: the user implemented all of `UInventoryGrid`; 11 of 11 `Flipper.InventoryGrid.*` tests pass (2784c68 plus a small uncommitted finish: `FindItemAt`, `FindFirstFit`, `Remove` using the stored definition). Phase 1.3: a Shipping package built and the exe launches (see the note under 1.3). Phase 2.1 started: `UFlipperHeldItemController` scaffold (header, `// TODO` stubs, 14 `Flipper.HeldItem.*` tests) added to `Source/`, uncommitted; all 14 fail on the stubs, as intended. Also added `.clang-format` (copied from the MCP project) and a local `.vscode/settings.json` with format-on-save.
+- **Next step:** Phase 2.1, the user (mentor mode, option A) fills in `UFlipperHeldItemController` in `FlipperHeldItemController.cpp` until every `Flipper.HeldItem` test passes. Claude then scaffolds the widgets (`UInventoryGridWidget`, item widget, held-item visual, tooltip card) and the 2.2 test screen. Commit first (1.4): `.clang-format`, the finished grid, and the controller scaffold. The user commits manually; Claude writes the commit message. 39b9893, c5575bc and 2784c68 may still be unpushed.
 - **Blockers:** none. The Unreal editor must be closed before command-line builds.
 
 ---
@@ -81,8 +81,8 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
   - Create `UInventoryGrid` with its full header (`CanPlace`, `TryPlace`, `Remove`, `FindItemAt`, `FindFirstFit`, the footprint helper, `OnChanged`) and `// TODO` bodies.
   - Write automation tests `Flipper.InventoryGrid.*`: bounds, overlap, rotated footprints, remove then re-place, finding the item at a cell, and first fit (unrotated, then rotated, then none).
   - Build to confirm the scaffold compiles. Tests are expected to fail.
-- [ ] **1.2 Implement the grid** (user, mentored) until every `Flipper.InventoryGrid` test passes.
-- [ ] **1.3 Early test package** (Claude). Package a Shipping build of the empty template to catch packaging and toolchain problems now, not at hour 64. Note any fixes here.
+- [x] **1.2 Implement the grid** (user, mentored) until every `Flipper.InventoryGrid` test passes.
+- [x] **1.3 Early test package** (Claude). Package a Shipping build of the empty template to catch packaging and toolchain problems now, not at hour 64. Note any fixes here. *Result 2026-10-17: succeeded with no fixes needed, but the first run took 3 h 9 min wall time (compiling the engine for Shipping from source, then a full cook). Packaged folder is about 2.2 GB, of which 1.77 GB is `LD60-Win64-Shipping.pdb`: leave the .pdb out of any zip. The exe starts and stays running. Later packages should be much faster since the engine is now compiled. Budget at least 30 to 60 min for the final package anyway, and start it early.*
 - [ ] **1.4 Commit and push.**
 
 ## Phase 2: Grid UI and input (Sat morning)

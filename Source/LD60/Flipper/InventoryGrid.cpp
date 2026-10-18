@@ -19,7 +19,7 @@ void UInventoryGrid::Init(int32 InWidth, int32 InHeight)
 	// Store the size and empty the grid.
 	GridWidth = InWidth;
 	GridHeight = InHeight;
-	ItemGrid.Init(INDEX_NONE, GridWidth*GridHeight);
+	ItemGrid.Init(INDEX_NONE, GridWidth * GridHeight);
 }
 
 bool UInventoryGrid::CanPlace(const FFlipperItemInstance& Item, FIntPoint Origin, bool bRotated) const
@@ -57,8 +57,8 @@ bool UInventoryGrid::TryPlace(const FFlipperItemInstance& Item, FIntPoint Origin
 	}
 
 	if (PlacedItems.ContainsByPredicate([&](const FFlipperPlacedItem& PlacedItem) {
-		return PlacedItem.Item.Id == Item.Id;
-	}))
+			return PlacedItem.Item.Id == Item.Id;
+		}))
 	{
 		return false;
 	}
@@ -89,15 +89,14 @@ bool UInventoryGrid::TryPlace(const FFlipperItemInstance& Item, FIntPoint Origin
 
 bool UInventoryGrid::Remove(const FFlipperItemInstance& Item)
 {
-	int32 IndexOfItemInPlacedItems = PlacedItems.IndexOfByPredicate([&](const FFlipperPlacedItem& PlacedItem) {
-		return PlacedItem.Item.Id == Item.Id;});
+	int32 IndexOfItemInPlacedItems = PlacedItems.IndexOfByPredicate([&](const FFlipperPlacedItem& PlacedItem) { return PlacedItem.Item.Id == Item.Id; });
 	if (IndexOfItemInPlacedItems == INDEX_NONE)
 	{
 		return false;
 	}
 
 	FIntPoint PlacedItemOrigin = PlacedItems[IndexOfItemInPlacedItems].Placement.Origin;
-	bool bPlacedItemRotated = PlacedItems[IndexOfItemInPlacedItems].Placement.bRotated;
+	bool	  bPlacedItemRotated = PlacedItems[IndexOfItemInPlacedItems].Placement.bRotated;
 
 	TArray<int32> CoveredCellsInItemGrid = GetCoveredCellsByDefinedItem(PlacedItems[IndexOfItemInPlacedItems].Item.Definition, PlacedItemOrigin, bPlacedItemRotated);
 
@@ -129,9 +128,7 @@ const FFlipperPlacedItem* UInventoryGrid::FindItemAt(FIntPoint Cell) const
 		return nullptr;
 	}
 
-	return PlacedItems.FindByPredicate([&ItemId](const FFlipperPlacedItem& PlacedItem) {
-		return PlacedItem.Item.Id == ItemId;});
-
+	return PlacedItems.FindByPredicate([&ItemId](const FFlipperPlacedItem& PlacedItem) { return PlacedItem.Item.Id == ItemId; });
 }
 
 bool UInventoryGrid::FindFirstFit(const FFlipperItemInstance& Item, FIntPoint& OutOrigin, bool& bOutRotated) const
@@ -169,7 +166,7 @@ int32 UInventoryGrid::ConvertPointToItemGridCell(int32 X, int32 Y) const
 	return X + (GridWidth * Y);
 }
 
-TArray<int32> UInventoryGrid::GetCoveredCellsByDefinedItem(UFlipperItemDefinition *Definition, FIntPoint Origin, bool bRotated) const
+TArray<int32> UInventoryGrid::GetCoveredCellsByDefinedItem(UFlipperItemDefinition* Definition, FIntPoint Origin, bool bRotated) const
 {
 	// This is the result array that will be returned by this function
 	TArray<int32> result;
@@ -177,8 +174,8 @@ TArray<int32> UInventoryGrid::GetCoveredCellsByDefinedItem(UFlipperItemDefinitio
 	// X and Y endpoints for the item will change based on whether bRotated was set or not. The change
 	// is a swap of Height and Width in the endpoint calculation.
 	FIntPoint ItemFootprint = GetFootprint(Definition, bRotated);
-	int32 ItemXEndPoint = Origin.X + ItemFootprint.X - 1;
-	int32 ItemYEndPoint = Origin.Y + ItemFootprint.Y - 1;
+	int32	  ItemXEndPoint = Origin.X + ItemFootprint.X - 1;
+	int32	  ItemYEndPoint = Origin.Y + ItemFootprint.Y - 1;
 
 	// Guard to check if the item is outside bounds of grid, if so return empty array.
 	if (Origin.X < 0 || Origin.Y < 0 || ItemXEndPoint >= GridWidth || ItemYEndPoint >= GridHeight)
@@ -186,7 +183,7 @@ TArray<int32> UInventoryGrid::GetCoveredCellsByDefinedItem(UFlipperItemDefinitio
 		return {};
 	}
 
-    for (int32 i = Origin.X; i <= ItemXEndPoint; i++)
+	for (int32 i = Origin.X; i <= ItemXEndPoint; i++)
 	{
 		for (int32 j = Origin.Y; j <= ItemYEndPoint; j++)
 		{

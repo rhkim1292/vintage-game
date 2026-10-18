@@ -22,7 +22,6 @@ class UInventoryGrid : public UObject
 	GENERATED_BODY()
 
 public:
-
 	/**
 	 *  Footprint of an item in cells as (Width, Height). Swapped to (Height, Width) when bRotated.
 	 *  Returns (0,0) for a null Definition.
@@ -74,7 +73,6 @@ public:
 	FOnInventoryGridChanged OnChanged;
 
 private:
-
 #if WITH_DEV_AUTOMATION_TESTS
 	// Lets the CellIndex automation test call the private index helper directly.
 	friend class FFlipperGridCellIndexTest;

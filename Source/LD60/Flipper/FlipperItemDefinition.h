@@ -18,20 +18,19 @@ class UFlipperItemDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
-
 	/** Name shown in the tooltip */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	FText DisplayName;
 
 	/** Footprint width in grid cells when not rotated */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item", meta = (ClampMin = 1))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (ClampMin = 1))
 	int32 Width = 1;
 
 	/** Footprint height in grid cells when not rotated */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item", meta = (ClampMin = 1))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (ClampMin = 1))
 	int32 Height = 1;
 
 	/** Icon drawn inside the item's footprint */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UTexture2D> Icon;
 };
