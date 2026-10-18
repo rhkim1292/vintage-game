@@ -34,7 +34,6 @@ class UFlipperHeldItemController : public UObject
 	GENERATED_BODY()
 
 public:
-
 	/**
 	 *  How far (in screen pixels) the mouse must move after a press before releasing counts as a drag-drop.
 	 *  Below this, releasing keeps the item held (click style). Resets all held state.
@@ -115,21 +114,23 @@ public:
 	bool QuickTransfer(UInventoryGrid* From, FIntPoint Cell, UInventoryGrid* To);
 
 private:
-
 	// TODO: whatever private helpers you want (for example a TryDrop and a SnapBack that PointerDown, PointerUp and
 	// Cancel all share, so there is exactly one drop path and one snap-back path).
 
-	bool					bHolding = false;
-	FFlipperItemInstance	HeldItem;
+	bool				 bHolding = false;
+	FFlipperItemInstance HeldItem;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryGrid> OriginGrid;
 
-	FFlipperPlacement		OriginPlacement;
-	FIntPoint				GrabOffset = FIntPoint::ZeroValue;
-	bool					bHeldRotated = false;
+	FFlipperPlacement OriginPlacement;
+	FIntPoint		  GrabOffset = FIntPoint::ZeroValue;
+	bool			  bHeldRotated = false;
 
-	float					DragThresholdPixels = 5.f;
-	FVector2D				PressScreenPos = FVector2D::ZeroVector;
-	bool					bDragged = false;
+	float	  DragThresholdPixels = 5.f;
+	FVector2D PressScreenPos = FVector2D::ZeroVector;
+	bool	  bDragged = false;
+
+	void SnapBackHeldItem();
+	void DropHeldItem(UInventoryGrid* Grid, FIntPoint Cell);
 };

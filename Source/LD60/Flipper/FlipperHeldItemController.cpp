@@ -5,7 +5,6 @@
 
 FIntPoint UFlipperHeldItemController::GetHeldFootprint() const
 {
-	// TODO: (0,0) when nothing is held, otherwise the held item's footprint in its current rotation.
 	if (!IsHolding())
 	{
 		return FIntPoint::ZeroValue;
@@ -16,7 +15,6 @@ FIntPoint UFlipperHeldItemController::GetHeldFootprint() const
 
 void UFlipperHeldItemController::Init(float InDragThresholdPixels)
 {
-	// TODO: store the threshold and reset every piece of held state (nothing held, no origin grid, no drag).
 	bHolding = false;
 	HeldItem = {};
 	OriginGrid = nullptr;
@@ -30,7 +28,6 @@ void UFlipperHeldItemController::Init(float InDragThresholdPixels)
 
 void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos)
 {
-	// TODO: see the header. Not holding -> pick up whatever covers Cell. Holding -> try to drop at Cell.
 	if (!Grid)
 	{
 		if (!IsHolding())
@@ -38,9 +35,7 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 			return;
 		}
 
-		ensureMsgf(OriginGrid->TryPlace(HeldItem, OriginPlacement.Origin, OriginPlacement.bRotated), TEXT("Snap-back failed: the held item could not be put back where it came from, so it is now in no grid."));
-		Init(DragThresholdPixels);
-		OnChanged.Broadcast();
+		SnapBackHeldItem();
 		return;
 	}
 
@@ -65,36 +60,135 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 		OnChanged.Broadcast();
 		return;
 	}
+
+	DropHeldItem(Grid, Cell);
 }
 
 void UFlipperHeldItemController::PointerMove(FVector2D ScreenPos)
 {
-	// TODO: once ScreenPos is further than the drag threshold from the press position, this press is a drag.
+	if (FVector2D::Distance(ScreenPos, PressScreenPos) > DragThresholdPixels && IsHolding())
+	{
+		bDragged = true;
+	}
 }
 
 void UFlipperHeldItemController::PointerUp(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos)
 {
-	// TODO: holding and dragged -> try to drop at Cell. Otherwise leave the item held.
+	if (IsHolding() && bDragged)
+	{
+		DropHeldItem(Grid, Cell);
+	}
 }
 
 void UFlipperHeldItemController::Rotate()
 {
-	// TODO: toggle the rotation and turn the grab offset clockwise: (x, y) in W x H becomes (H-1-y, x).
+	if (!IsHolding())
+	{
+		return;
+	}
+	FIntPoint HeldItemFootprint = GetHeldFootprint();
+	bHeldRotated = !bHeldRotated;
+	GrabOffset = FIntPoint(HeldItemFootprint.Y - 1 - GrabOffset.Y, GrabOffset.X);
+	OnChanged.Broadcast();
 }
 
 void UFlipperHeldItemController::Cancel()
 {
-	// TODO: snap the held item back to its origin grid and placement.
+	SnapBackHeldItem();
 }
 
 bool UFlipperHeldItemController::GetGhost(const UInventoryGrid* Grid, FIntPoint HoveredCell, FIntPoint& OutOrigin, bool& bOutValid) const
 {
-	// TODO: origin = HoveredCell - GrabOffset; valid = fits in Grid and (for a different grid) the approver allows it.
-	return false;
+	if (!IsHolding() || !Grid)
+	{
+		return false;
+	}
+
+	const bool bApproved = Grid == OriginGrid || !TransferApprover || TransferApprover(OriginGrid, Grid, HeldItem);
+	OutOrigin = HoveredCell - GrabOffset;
+	bOutValid = bApproved && Grid->CanPlace(HeldItem, OutOrigin, bHeldRotated);
+	return true;
 }
 
 bool UFlipperHeldItemController::QuickTransfer(UInventoryGrid* From, FIntPoint Cell, UInventoryGrid* To)
 {
-	// TODO: the item at Cell in From -> first fit in To, honouring the approver. False (and no change) otherwise.
-	return false;
+	if (IsHolding())
+	{
+		return false;
+	}
+
+	if (!From || !To)
+	{
+		return false;
+	}
+
+	const FFlipperPlacedItem* FromGridPlacedItem = From->FindItemAt(Cell);
+
+	if (!FromGridPlacedItem)
+	{
+		return false;
+	}
+
+	FFlipperItemInstance FromGridItem = FromGridPlacedItem->Item;
+
+	if (TransferApprover && !TransferApprover(From, To, FromGridItem))
+	{
+		return false;
+	}
+
+	FIntPoint FitOrigin;
+	bool	  bFitRotated;
+	bool	  bFoundFit = To->FindFirstFit(FromGridItem, FitOrigin, bFitRotated);
+
+	if (!bFoundFit)
+	{
+		return false;
+	}
+
+	ensureMsgf(To->TryPlace(FromGridItem, FitOrigin, bFitRotated), TEXT("Placement failed: the held item could not be transferred at found fit location."));
+	From->Remove(FromGridItem);
+	return true;
+}
+
+void UFlipperHeldItemController::SnapBackHeldItem()
+{
+	if (!OriginGrid)
+	{
+		return;
+	}
+
+	ensureMsgf(OriginGrid->TryPlace(HeldItem, OriginPlacement.Origin, OriginPlacement.bRotated), TEXT("Snap-back failed: the held item could not be put back where it came from, so it is now in no grid."));
+	Init(DragThresholdPixels);
+	OnChanged.Broadcast();
+}
+
+void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FIntPoint Cell)
+{
+	if (!Grid)
+	{
+		if (!IsHolding())
+		{
+			return;
+		}
+
+		SnapBackHeldItem();
+		return;
+	}
+
+	FIntPoint DropOrigin = FIntPoint(Cell.X - GrabOffset.X, Cell.Y - GrabOffset.Y);
+	if (!Grid->CanPlace(HeldItem, DropOrigin, bHeldRotated))
+	{
+		SnapBackHeldItem();
+		return;
+	}
+
+	if (Grid != OriginGrid && TransferApprover && !TransferApprover(OriginGrid, Grid, HeldItem))
+	{
+		SnapBackHeldItem();
+		return;
+	}
+
+	ensureMsgf(Grid->TryPlace(HeldItem, DropOrigin, bHeldRotated), TEXT("Placement failed: the held item could not be dropped at the target cell."));
+	Init(DragThresholdPixels);
+	OnChanged.Broadcast();
 }
