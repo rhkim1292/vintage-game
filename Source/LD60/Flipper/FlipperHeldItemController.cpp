@@ -6,17 +6,65 @@
 FIntPoint UFlipperHeldItemController::GetHeldFootprint() const
 {
 	// TODO: (0,0) when nothing is held, otherwise the held item's footprint in its current rotation.
-	return FIntPoint::ZeroValue;
+	if (!IsHolding())
+	{
+		return FIntPoint::ZeroValue;
+	}
+
+	return UInventoryGrid::GetFootprint(HeldItem.Definition, IsHeldRotated());
 }
 
 void UFlipperHeldItemController::Init(float InDragThresholdPixels)
 {
 	// TODO: store the threshold and reset every piece of held state (nothing held, no origin grid, no drag).
+	bHolding = false;
+	HeldItem = {};
+	OriginGrid = nullptr;
+	OriginPlacement = {};
+	GrabOffset = FIntPoint::ZeroValue;
+	bHeldRotated = false;
+	DragThresholdPixels = InDragThresholdPixels;
+	PressScreenPos = FVector2D::ZeroVector;
+	bDragged = false;
 }
 
 void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos)
 {
 	// TODO: see the header. Not holding -> pick up whatever covers Cell. Holding -> try to drop at Cell.
+	if (!Grid)
+	{
+		if (!IsHolding())
+		{
+			return;
+		}
+
+		ensureMsgf(OriginGrid->TryPlace(HeldItem, OriginPlacement.Origin, OriginPlacement.bRotated), TEXT("Snap-back failed: the held item could not be put back where it came from, so it is now in no grid."));
+		Init(DragThresholdPixels);
+		OnChanged.Broadcast();
+		return;
+	}
+
+	if (!IsHolding())
+	{
+		const FFlipperPlacedItem* PlacedItemPtr = Grid->FindItemAt(Cell);
+
+		if (!PlacedItemPtr)
+		{
+			return;
+		}
+
+		HeldItem = PlacedItemPtr->Item;
+		bHolding = true;
+		OriginGrid = Grid;
+		OriginPlacement = PlacedItemPtr->Placement;
+		GrabOffset = FIntPoint(Cell.X - PlacedItemPtr->Placement.Origin.X, Cell.Y - PlacedItemPtr->Placement.Origin.Y);
+		bHeldRotated = PlacedItemPtr->Placement.bRotated;
+		Grid->Remove(HeldItem);
+		PressScreenPos = ScreenPos;
+		bDragged = false;
+		OnChanged.Broadcast();
+		return;
+	}
 }
 
 void UFlipperHeldItemController::PointerMove(FVector2D ScreenPos)
