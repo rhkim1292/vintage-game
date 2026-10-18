@@ -89,24 +89,24 @@ bool UInventoryGrid::TryPlace(const FFlipperItemInstance& Item, FIntPoint Origin
 
 bool UInventoryGrid::Remove(const FFlipperItemInstance& Item)
 {
-	int32 IndexOfItem = PlacedItems.IndexOfByPredicate([&](const FFlipperPlacedItem& PlacedItem) {
+	int32 IndexOfItemInPlacedItems = PlacedItems.IndexOfByPredicate([&](const FFlipperPlacedItem& PlacedItem) {
 		return PlacedItem.Item.Id == Item.Id;});
-	if (IndexOfItem == INDEX_NONE)
+	if (IndexOfItemInPlacedItems == INDEX_NONE)
 	{
 		return false;
 	}
 
-	FIntPoint PlacedItemOrigin = PlacedItems[IndexOfItem].Placement.Origin;
-	bool bPlacedItemRotated = PlacedItems[IndexOfItem].Placement.bRotated;
+	FIntPoint PlacedItemOrigin = PlacedItems[IndexOfItemInPlacedItems].Placement.Origin;
+	bool bPlacedItemRotated = PlacedItems[IndexOfItemInPlacedItems].Placement.bRotated;
 
-	TArray<int32> CoveredCellsInItemGrid = GetCoveredCellsByDefinedItem(Item.Definition, PlacedItemOrigin, bPlacedItemRotated);
+	TArray<int32> CoveredCellsInItemGrid = GetCoveredCellsByDefinedItem(PlacedItems[IndexOfItemInPlacedItems].Item.Definition, PlacedItemOrigin, bPlacedItemRotated);
 
 	for (int32 i = 0; i < CoveredCellsInItemGrid.Num(); i++)
 	{
 		ItemGrid[CoveredCellsInItemGrid[i]] = INDEX_NONE;
 	}
 
-	PlacedItems.RemoveAt(IndexOfItem, 1);
+	PlacedItems.RemoveAt(IndexOfItemInPlacedItems, 1);
 
 	OnChanged.Broadcast();
 
@@ -115,13 +115,47 @@ bool UInventoryGrid::Remove(const FFlipperItemInstance& Item)
 
 const FFlipperPlacedItem* UInventoryGrid::FindItemAt(FIntPoint Cell) const
 {
-	// TODO: the placed item whose footprint covers Cell, or nullptr.
-	return nullptr;
+	int32 ItemGridIdx = ConvertPointToItemGridCell(Cell.X, Cell.Y);
+
+	if (ItemGridIdx == -2)
+	{
+		return nullptr;
+	}
+
+	int32 ItemId = ItemGrid[ItemGridIdx];
+
+	if (ItemId == INDEX_NONE)
+	{
+		return nullptr;
+	}
+
+	return PlacedItems.FindByPredicate([&ItemId](const FFlipperPlacedItem& PlacedItem) {
+		return PlacedItem.Item.Id == ItemId;});
+
 }
 
 bool UInventoryGrid::FindFirstFit(const FFlipperItemInstance& Item, FIntPoint& OutOrigin, bool& bOutRotated) const
 {
-	// TODO: row by row from the top-left; at each cell try unrotated, then rotated.
+	for (int32 j = 0; j < GridHeight; j++)
+	{
+		for (int32 i = 0; i < GridWidth; i++)
+		{
+			if (CanPlace(Item, FIntPoint(i, j), false))
+			{
+				OutOrigin = FIntPoint(i, j);
+				bOutRotated = false;
+				return true;
+			}
+
+			if (CanPlace(Item, FIntPoint(i, j), true))
+			{
+				OutOrigin = FIntPoint(i, j);
+				bOutRotated = true;
+				return true;
+			}
+		}
+	}
+
 	return false;
 }
 
