@@ -4,6 +4,7 @@
 #include "FlipperHeldItemController.h"
 #include "FlipperItemGenerator.h"
 #include "FlipperTradeRule.h"
+#include "FlipperWallet.h"
 #include "InventoryGrid.h"
 
 namespace
@@ -32,6 +33,12 @@ void UFlipperDayLoop::Init(const FFlipperDayConfig& InConfig, UInventoryGrid* In
 	TestChargesLeft = 0;
 	BannerTimeLeft = 0.f;
 	Mood = EFlipperBuyerMood::Normal;
+	Result = EFlipperRunResult::InProgress;
+}
+
+int32 UFlipperDayLoop::GetCash() const
+{
+	return Wallet ? Wallet->GetCash() : 0;
 }
 
 void UFlipperDayLoop::Bind(UFlipperHeldItemController* Controller)
@@ -151,6 +158,13 @@ void UFlipperDayLoop::EnterPhase(EFlipperPhase NewPhase)
 		TimeLeft = Config.SellSeconds;
 		// The seller has packed up: the table becomes the buyer's counter.
 		ClearSellerTable();
+		break;
+	case EFlipperPhase::Finished:
+		// The one rent check of the run. Cash only: whatever is left in the trunk is worth nothing here.
+		if (Wallet)
+		{
+			Result = IsRentMet(Wallet->GetCash(), Config.RentAmount) ? EFlipperRunResult::Won : EFlipperRunResult::Lost;
+		}
 		break;
 	default:
 		break;

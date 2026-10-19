@@ -128,6 +128,14 @@ int32 UFlipperDayHud::NativePaint(const FPaintArgs& Args, const FGeometry& Allot
 		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, FVector2D(250.f, 6.f), FString::Printf(TEXT("Buyer: %s x%s"), GetMoodName(Mood), *FString::SanitizeFloat(DayLoop->GetMoodMultiplier())), GetMoodColor(Mood));
 	}
 
+	// The goal is on screen for the whole run. It turns green once the cash covers it and, on the last day, red while it does not.
+	{
+		const bool		   bMet = UFlipperDayLoop::IsRentMet(DayLoop->GetCash(), DayLoop->GetRent());
+		const bool		   bLastDay = DayLoop->GetDay() >= DayLoop->GetConfig().DayCount;
+		const FLinearColor RentColor = bMet ? FLinearColor(0.3f, 0.9f, 0.4f, 1.f) : (bLastDay ? FLinearColor(1.f, 0.25f, 0.25f, 1.f) : FLinearColor(1.f, 0.85f, 0.3f, 1.f));
+		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, FVector2D(390.f, 6.f), FString::Printf(TEXT("Rent $%d"), DayLoop->GetRent()), RentColor);
+	}
+
 	FString Hint;
 	switch (Phase)
 	{
@@ -191,13 +199,14 @@ void UFlipperPhaseBanner::NativeConstruct()
 int32 UFlipperPhaseBanner::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	LayerId = Super::NativePaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	if (!DayLoop || DayLoop->GetDay() <= 0 || DayLoop->GetBannerTimeLeft() <= 0.f)
+	// The end screen takes over once the run is Finished.
+	if (!DayLoop || DayLoop->GetDay() <= 0 || DayLoop->GetBannerTimeLeft() <= 0.f || DayLoop->GetPhase() == EFlipperPhase::Finished)
 	{
 		return LayerId;
 	}
 
 	const EFlipperPhase Phase = DayLoop->GetPhase();
-	const FString		Text = Phase == EFlipperPhase::Finished ? FString(TEXT("Run complete")) : FString::Printf(TEXT("Day %d: %s"), DayLoop->GetDay(), GetPhaseName(Phase));
+	const FString		Text = FString::Printf(TEXT("Day %d: %s"), DayLoop->GetDay(), GetPhaseName(Phase));
 
 	// Fade out over the last third of a second.
 	const float Alpha = FMath::Clamp(DayLoop->GetBannerTimeLeft() / 0.33f, 0.f, 1.f);

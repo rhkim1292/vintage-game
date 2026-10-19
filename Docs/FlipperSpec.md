@@ -195,3 +195,19 @@ Full write-up: `Docs/FlipperSelling-design.md`. In the Sell phase the right-hand
 ### Handed to later grills
 
 - **Win/lose:** what happens after the last day (Phase 7).
+
+---
+
+## Feature 6: Rent and win/lose (jam scope)
+
+Full write-up: `Docs/FlipperWinLose-design.md`. When the last day's Sell phase ends the run is Finished and the player's cash is checked once against the rent ($450, data). Cash at least the rent is a win ("You made rent!"), otherwise a loss ("Evicted!"). Unsold trunk items do not count. The end screen shows the headline, final cash, the rent and the days played, with a Play Again button that starts a new run on a new random seed. The HUD shows the rent all run.
+
+### Locked decisions
+
+- **One rent check at the end of the last day.** *Rejected:* rent every day, rising; rent on a few days only (both end the run early on one miss, punishing the Untested gamble).
+
+### Routine choices
+
+- **Cash only** counts. *Rejected:* cash plus the leftover items' offers.
+- **End screen:** headline, numbers, Play Again with a new seed. *Rejected:* a run summary (deferred to Phase 8 if time); replaying the same seed.
+- **Rent $450** (net +$250 over the $200 start); tuned in Phase 9.

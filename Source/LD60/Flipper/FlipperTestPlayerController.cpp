@@ -7,6 +7,7 @@
 #include "FlipperCashWidget.h"
 #include "FlipperDayHud.h"
 #include "FlipperDayLoop.h"
+#include "FlipperEndScreen.h"
 #include "FlipperTradeRule.h"
 #include "FlipperWallet.h"
 #include "Framework/Application/SlateApplication.h"
@@ -69,6 +70,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	DayLoop = NewObject<UFlipperDayLoop>(this);
 	DayLoop->Init(FFlipperDayConfig(), Trunk, SellerTable, Generator, HeldItemController, TradeRule, FMath::Rand());
 	DayLoop->Bind(HeldItemController);
+	DayLoop->SetWallet(Wallet);
 
 	DayHud = CreateWidget<UFlipperDayHud>(this);
 	DayHud->Setup(DayLoop);
@@ -79,6 +81,11 @@ void AFlipperTestPlayerController::BeginPlay()
 	PhaseBanner = CreateWidget<UFlipperPhaseBanner>(this);
 	PhaseBanner->Setup(DayLoop);
 	PhaseBanner->AddToViewport(13);
+
+	// The win/lose screen (Feature 6), collapsed until the run is Finished.
+	EndScreen = CreateWidget<UFlipperEndScreen>(this);
+	EndScreen->Setup(DayLoop);
+	EndScreen->AddToViewport(14);
 
 	DayLoop->StartRun();
 

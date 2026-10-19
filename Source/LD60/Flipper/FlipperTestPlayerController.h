@@ -19,6 +19,7 @@ class UFlipperCashWidget;
 class UFlipperDayLoop;
 class UFlipperDayHud;
 class UFlipperPhaseBanner;
+class UFlipperEndScreen;
 
 /**
  *  Phase 2.2 test screen: builds a 10x6 trunk and an 8x5 seller table, fills them with hard-coded test items,
@@ -75,6 +76,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UFlipperPhaseBanner> PhaseBanner;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperEndScreen> EndScreen;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryGridWidget> TrunkWidget;

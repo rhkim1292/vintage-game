@@ -12,6 +12,7 @@ class UInventoryGrid;
 class UFlipperHeldItemController;
 class UFlipperItemGenerator;
 class UFlipperTradeRule;
+class UFlipperWallet;
 
 /** The three phases of a day, in order, and Finished once the last day's Sell phase is over. */
 UENUM(BlueprintType)
@@ -21,6 +22,15 @@ enum class EFlipperPhase : uint8
 	Garage,
 	Sell,
 	Finished
+};
+
+/** How the run ended (Docs/FlipperSpec.md, Feature 6). InProgress until the day loop is Finished. */
+UENUM(BlueprintType)
+enum class EFlipperRunResult : uint8
+{
+	InProgress,
+	Won,
+	Lost
 };
 
 /** Every number of the day loop, kept in data so the balance pass can tune it (Docs/FlipperSpec.md, Feature 4). */
@@ -52,6 +62,10 @@ struct FFlipperDayConfig
 	/** How long the phase banner stays on screen after each phase change. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day", meta = (ClampMin = 0))
 	float BannerSeconds = 1.f;
+
+	/** The cash the player needs once the last day's Sell phase is over (Feature 6). Unsold items do not count. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day", meta = (ClampMin = 0))
+	int32 RentAmount = 450;
 };
 
 /** Fired after the phase changes (NewPhase, Day). A new day starts with a Market phase. */
@@ -69,6 +83,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFlipperPhaseChanged, EFlipperPhase /*New
  *    - Selling (Feature 5): entering Market rolls the day's buyer mood (its own FRandomStream, so the table roll is not
  *      disturbed) and hands its multiplier to the trade rule. Entering Sell clears the seller table (the seller has left)
  *      and opens selling on the trade rule; leaving Sell closes it.
+ *    - Rent (Feature 6): entering Finished checks the wallet's cash against RentAmount once and sets the result.
  */
 UCLASS(BlueprintType)
 class UFlipperDayLoop : public UObject
@@ -84,6 +99,9 @@ public:
 
 	/** The moods are rolled and scaled with these numbers. Call before StartRun; the default is FFlipperPricingConfig(). */
 	void SetPricingConfig(const FFlipperPricingConfig& InConfig) { PricingConfig = InConfig; }
+
+	/** The wallet the rent is checked against when the run is Finished. Without one the result stays InProgress. Call before StartRun. */
+	void SetWallet(UFlipperWallet* InWallet) { Wallet = InWallet; }
 
 	/** Hooks the Garage test click up to the controller (its PickupIntercept). */
 	void Bind(UFlipperHeldItemController* Controller);
@@ -131,6 +149,18 @@ public:
 	/** The offer multiplier of today's mood. */
 	float GetMoodMultiplier() const { return FlipperPricing::GetMoodMultiplier(Mood, PricingConfig); }
 
+	/** The rent the player needs at the end of the run. */
+	int32 GetRent() const { return Config.RentAmount; }
+
+	/** The player's cash now (0 without a wallet). */
+	int32 GetCash() const;
+
+	/** True when Cash covers the Rent; exactly the rent counts. The one rule of the rent check. */
+	static bool IsRentMet(int32 Cash, int32 Rent) { return Cash >= Rent; }
+
+	/** InProgress until the run is Finished, then Won or Lost by the cash against the rent. Items left in the trunk do not count. */
+	EFlipperRunResult GetResult() const { return Result; }
+
 	FOnFlipperPhaseChanged OnPhaseChanged;
 
 private:
@@ -150,6 +180,11 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UFlipperTradeRule> TradeRule;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperWallet> Wallet;
+
+	EFlipperRunResult Result = EFlipperRunResult::InProgress;
 
 	int32		   Seed = 0;
 	EFlipperPhase  Phase = EFlipperPhase::Market;

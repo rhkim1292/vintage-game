@@ -20,7 +20,7 @@ class UFlipperDayHud : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	static constexpr float PanelWidth = 512.f;
+	static constexpr float PanelWidth = 640.f;
 	static constexpr float PanelHeight = 54.f;
 
 	void Setup(UFlipperDayLoop* InDayLoop);
