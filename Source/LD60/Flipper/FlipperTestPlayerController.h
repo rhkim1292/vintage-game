@@ -39,6 +39,10 @@ protected:
 private:
 	static constexpr float CellSize = 64.f;
 
+	/** The trunk is small on purpose: limited space makes the player choose what to keep. */
+	static constexpr int32 TrunkColumns = 4;
+	static constexpr int32 TrunkRows = 3;
+
 	UPROPERTY()
 	TObjectPtr<UInventoryGrid> Trunk;
 

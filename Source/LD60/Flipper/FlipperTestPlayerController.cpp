@@ -22,7 +22,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	Trunk = NewObject<UInventoryGrid>(this);
-	Trunk->Init(10, 6);
+	Trunk->Init(TrunkColumns, TrunkRows);
 	SellerTable = NewObject<UInventoryGrid>(this);
 	SellerTable->Init(8, 5);
 
@@ -51,7 +51,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	SellerTableWidget->Setup(SellerTable, HeldItemController, Trunk, CellSize);
 	SellerTableWidget->AddToViewport(0);
 	SellerTableWidget->SetDesiredSizeInViewport(SellerTableWidget->GetPixelSize());
-	SellerTableWidget->SetPositionInViewport(FVector2D(40.f + 10 * CellSize + 60.f, 80.f), false);
+	SellerTableWidget->SetPositionInViewport(FVector2D(40.f + TrunkColumns * CellSize + 60.f, 80.f), false);
 
 	Overlay = CreateWidget<UFlipperHeldItemOverlay>(this);
 	Overlay->Setup(HeldItemController, CellSize);
@@ -74,7 +74,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	DayHud->Setup(DayLoop);
 	DayHud->AddToViewport(12);
 	DayHud->SetDesiredSizeInViewport(FVector2D(UFlipperDayHud::PanelWidth, UFlipperDayHud::PanelHeight));
-	DayHud->SetPositionInViewport(FVector2D(40.f + 10 * CellSize + 60.f, 14.f), false);
+	DayHud->SetPositionInViewport(FVector2D(40.f + TrunkColumns * CellSize + 60.f, 14.f), false);
 
 	PhaseBanner = CreateWidget<UFlipperPhaseBanner>(this);
 	PhaseBanner->Setup(DayLoop);
