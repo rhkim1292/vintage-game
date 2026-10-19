@@ -76,6 +76,18 @@ struct FFlipperItemInstance
 	/** The hidden truth. Only ever false on an item that was rolled Untested. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	bool bWorks = true;
+
+	/** What the seller charges. Rolled with the item (Docs/FlipperSpec.md, Feature 3). 0 on hand-made test items. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	int32 AskPrice = 0;
+
+	/** What the player paid when buying it. A refund returns exactly this. 0 until bought. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	int32 PaidPrice = 0;
+
+	/** True from the moment it is bought until the Market phase ends: only then may it go back to the table for a refund. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	bool bBoughtThisPhase = false;
 };
 
 /** Where an item sits in a grid: its top-left cell, and whether it is turned a quarter turn. */

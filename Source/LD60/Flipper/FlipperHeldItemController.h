@@ -18,6 +18,9 @@ DECLARE_MULTICAST_DELEGATE(FOnHeldItemChanged);
  */
 using FFlipperTransferApprover = TFunction<bool(const UInventoryGrid* From, const UInventoryGrid* To, const FFlipperItemInstance& Item)>;
 
+/** Told that a move between two grids is about to happen (see UFlipperHeldItemController::TransferCommitted). */
+using FFlipperTransferCommitted = TFunction<void(const UInventoryGrid* From, const UInventoryGrid* To, FFlipperItemInstance& Item)>;
+
 /**
  *  The one held-item state machine behind both input styles (press-drag-release and click-to-pick-up /
  *  click-to-place). Shared by the trunk and seller-table widgets. Pure logic: no widgets, no mouse API.
@@ -64,6 +67,13 @@ public:
 
 	/** Unbound = every cross-grid move is allowed. */
 	FFlipperTransferApprover TransferApprover;
+
+	/**
+	 *  Called once, with the item that is about to be placed, when a move between two different grids is going to
+	 *  happen (a drop or a Shift-click that the approver allowed). The item may be changed here (a purchase stamps
+	 *  what was paid on it). Unbound = nothing happens. Not called for a move inside one grid, or a snap-back.
+	 */
+	FFlipperTransferCommitted TransferCommitted;
 
 	/** Fired after a pick-up, rotation, drop, snap-back or cancel. */
 	FOnHeldItemChanged OnChanged;

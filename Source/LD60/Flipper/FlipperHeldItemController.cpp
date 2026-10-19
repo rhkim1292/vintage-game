@@ -145,6 +145,11 @@ bool UFlipperHeldItemController::QuickTransfer(UInventoryGrid* From, FIntPoint C
 		return false;
 	}
 
+	if (From != To && TransferCommitted)
+	{
+		TransferCommitted(From, To, FromGridItem);
+	}
+
 	ensureMsgf(To->TryPlace(FromGridItem, FitOrigin, bFitRotated), TEXT("Placement failed: the held item could not be transferred at found fit location."));
 	From->Remove(FromGridItem);
 	return true;
@@ -186,6 +191,11 @@ void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FIntPoint Ce
 	{
 		SnapBackHeldItem();
 		return;
+	}
+
+	if (Grid != OriginGrid && TransferCommitted)
+	{
+		TransferCommitted(OriginGrid, Grid, HeldItem);
 	}
 
 	ensureMsgf(Grid->TryPlace(HeldItem, DropOrigin, bHeldRotated), TEXT("Placement failed: the held item could not be dropped at the target cell."));

@@ -13,6 +13,9 @@ class UFlipperHeldItemOverlay;
 class UFlipperItemTooltip;
 class UFlipperItemDefinition;
 class UFlipperItemGenerator;
+class UFlipperWallet;
+class UFlipperTradeRule;
+class UFlipperCashWidget;
 
 /**
  *  Phase 2.2 test screen: builds a 10x6 trunk and an 8x5 seller table, fills them with hard-coded test items,
@@ -46,6 +49,15 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UFlipperItemGenerator> Generator;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperWallet> Wallet;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperTradeRule> TradeRule;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperCashWidget> CashWidget;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryGridWidget> TrunkWidget;

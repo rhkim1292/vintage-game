@@ -4,7 +4,7 @@
 #include "FlipperItemDefinition.h"
 #include "InventoryGrid.h"
 
-void UFlipperItemGenerator::Init(const TArray<UFlipperItemDefinition*>& InDefinitions, const FFlipperGenerationConfig& InConfig)
+void UFlipperItemGenerator::Init(const TArray<UFlipperItemDefinition*>& InDefinitions, const FFlipperGenerationConfig& InConfig, const FFlipperPricingConfig& InPricing)
 {
 	Definitions.Reset();
 	for (UFlipperItemDefinition* Definition : InDefinitions)
@@ -12,6 +12,7 @@ void UFlipperItemGenerator::Init(const TArray<UFlipperItemDefinition*>& InDefini
 		Definitions.Add(Definition);
 	}
 	Config = InConfig;
+	Pricing = InPricing;
 	NextItemId = 1;
 }
 
@@ -114,6 +115,7 @@ FFlipperItemInstance UFlipperItemGenerator::RollItem(FRandomStream& Random)
 		Item.bTested = true;
 		Item.bWorks = true;
 	}
+	Item.AskPrice = FlipperPricing::GetAskPrice(Item, Pricing, Random);
 	return Item;
 }
 

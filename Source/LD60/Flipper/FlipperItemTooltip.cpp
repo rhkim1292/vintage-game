@@ -42,7 +42,7 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 
 	const UFlipperItemDefinition* Definition = Placed->Item.Definition;
 	const FVector2D				  Pos = AllottedGeometry.AbsoluteToLocal(AbsoluteCursor) + FVector2D(16.f, 16.f);
-	const FVector2D				  Size(190.f, 100.f);
+	const FVector2D				  Size(190.f, 122.f);
 	const FLinearColor			  RarityColor = FlipperRarity::GetColor(Placed->Item.Rarity);
 	const FLinearColor			  Dim(0.7f, 0.7f, 0.75f, 1.f);
 
@@ -61,6 +61,16 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 28.f), FString::Printf(TEXT("%d x %d"), Definition->Width, Definition->Height), Dim);
 	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 50.f), FlipperRarity::GetName(Placed->Item.Rarity), RarityColor);
 	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 72.f), Status, StatusColor);
+
+	// Price line (Docs/FlipperSpec.md, Feature 3): what the seller asks, or what the player paid once bought.
+	if (Placed->Item.PaidPrice > 0)
+	{
+		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 94.f), FString::Printf(TEXT("Paid $%d"), Placed->Item.PaidPrice), Dim);
+	}
+	else if (Placed->Item.AskPrice > 0)
+	{
+		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 94.f), FString::Printf(TEXT("Ask $%d"), Placed->Item.AskPrice), FLinearColor(1.f, 0.85f, 0.3f, 1.f));
+	}
 
 	return LayerId + 2;
 }

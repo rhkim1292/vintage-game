@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "FlipperTypes.h"
+#include "FlipperPricing.h"
 #include "FlipperItemGenerator.generated.h"
 
 class UInventoryGrid;
@@ -56,7 +57,7 @@ class UFlipperItemGenerator : public UObject
 
 public:
 	/** Sets what can be rolled and with which numbers, and restarts the Id counter at 1. */
-	void Init(const TArray<UFlipperItemDefinition*>& InDefinitions, const FFlipperGenerationConfig& InConfig);
+	void Init(const TArray<UFlipperItemDefinition*>& InDefinitions, const FFlipperGenerationConfig& InConfig, const FFlipperPricingConfig& InPricing = FFlipperPricingConfig());
 
 	const FFlipperGenerationConfig& GetConfig() const { return Config; }
 
@@ -74,7 +75,7 @@ public:
 
 	/**
 	 *  Rolls one complete item with the next unused Id (1, 2, 3, ...): a definition, a rarity, and the
-	 *  Tested / Untested state.
+	 *  Tested / Untested state, and the seller's AskPrice (FlipperPricing::GetAskPrice, rolled last).
 	 *    - Untested with chance UntestedChance. An Untested item has bTested = false, and bWorks is true with
 	 *      chance UntestedWorksChance (otherwise it is dead).
 	 *    - Otherwise it is Tested: bTested = true and bWorks = true. A dead item is never Tested on the table.
@@ -96,6 +97,8 @@ private:
 	TArray<TObjectPtr<UFlipperItemDefinition>> Definitions;
 
 	FFlipperGenerationConfig Config;
+
+	FFlipperPricingConfig Pricing;
 
 	int32 NextItemId = 1;
 };

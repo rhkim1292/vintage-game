@@ -4,6 +4,9 @@
 #include "Components/InputComponent.h"
 #include "Engine/ObjectLibrary.h"
 #include "FlipperItemGenerator.h"
+#include "FlipperCashWidget.h"
+#include "FlipperTradeRule.h"
+#include "FlipperWallet.h"
 #include "Framework/Application/SlateApplication.h"
 #include "FlipperHeldItemController.h"
 #include "FlipperHeldItemOverlay.h"
@@ -29,6 +32,13 @@ void AFlipperTestPlayerController::BeginPlay()
 		FillTestItems();
 	}
 
+	// Buying and refunds (Docs/FlipperSpec.md, Feature 3): the player starts with the starting cash and an empty trunk.
+	Wallet = NewObject<UFlipperWallet>(this);
+	Wallet->Init(FFlipperPricingConfig().StartingCash);
+	TradeRule = NewObject<UFlipperTradeRule>(this);
+	TradeRule->Init(SellerTable, Trunk, Wallet);
+	TradeRule->Bind(HeldItemController);
+
 	TrunkWidget = CreateWidget<UInventoryGridWidget>(this);
 	TrunkWidget->Setup(Trunk, HeldItemController, SellerTable, CellSize);
 	TrunkWidget->AddToViewport(0);
@@ -48,6 +58,10 @@ void AFlipperTestPlayerController::BeginPlay()
 	Tooltip = CreateWidget<UFlipperItemTooltip>(this);
 	Tooltip->Setup(HeldItemController);
 	Tooltip->AddToViewport(11);
+
+	CashWidget = CreateWidget<UFlipperCashWidget>(this);
+	CashWidget->Setup(Wallet);
+	CashWidget->AddToViewport(12);
 
 	bShowMouseCursor = true;
 	FInputModeGameAndUI InputMode;
@@ -124,17 +138,7 @@ bool AFlipperTestPlayerController::FillRolledItems()
 	FRandomStream Random;
 	Random.GenerateNewSeed();
 
-	// A few rolled items in the trunk to play with, and a full day's seller table.
-	for (int32 i = 0; i < 4; ++i)
-	{
-		const FFlipperItemInstance Item = Generator->RollItem(Random);
-		FIntPoint				   Origin;
-		bool					   bRotated = false;
-		if (Item.Definition && Trunk->FindFirstFit(Item, Origin, bRotated))
-		{
-			Trunk->TryPlace(Item, Origin, bRotated);
-		}
-	}
+	// A full day's seller table. The trunk starts empty: everything in it has to be bought.
 	Generator->FillSellerTable(SellerTable, Random);
 	return true;
 }

@@ -132,3 +132,25 @@ Full write-up: `Docs/FlipperItemData-design.md`. Items are rolled copies of 6 it
 - **Pricing:** the rarity multipliers, the Tested price premium and the base-value formula.
 - **Day loop:** the Garage test action that flips Untested to Tested.
 - **Post-jam:** odds shifting across days, traits, condition, lots (see `Docs/FlipperPlan-Full.md`).
+
+---
+
+## Feature 3: Pricing and cash (jam scope)
+
+Full write-up: `Docs/FlipperPricing-design.md`. Value = base value x rarity multiplier (Common x1, Uncommon x2, Rare x4), rounded to whole dollars; a dead item is worth 10 percent of Value (scrap). The seller's ask price is fixed when the item is rolled: Tested 75 percent of Value, Untested 50 percent, then a random plus or minus 20 percent. Buying is buy-on-drop and a drop you cannot afford is refused. Moving an item bought this Market phase back to the table refunds what you paid; anything older cannot go back. The player starts with $200 and an empty trunk.
+
+### Locked decisions
+
+- **Value:** x1 / x2 / x4 by rarity, dead = 10 percent scrap. *Rejected:* gentler x1 / x1.5 / x2.5; dead worth nothing.
+- **Ask price:** Tested 75 percent, Untested 50 percent, plus or minus 20 percent per item. *Rejected:* no variation; 80 / 40 percent.
+
+### Routine choices
+
+- **Start:** $200 cash, empty trunk. *Rejected:* free starter items; $100.
+- **Refund:** only for items bought this Market phase, exactly what was paid. Moves inside one grid are free.
+- **Cash HUD and an ask-price line in the tooltip.** All numbers are data.
+
+### Handed to later grills
+
+- **Selling:** the buyer's offer formula (Phase 6).
+- **Day loop:** clearing the bought-this-phase flag at the end of each Market phase.

@@ -14,7 +14,7 @@ The step-by-step plan for finishing **Flipper** (Ludum Dare 60, theme "old tech"
 
 ## Where we are
 
-- **Last updated:** 2026-10-18, night PT (end of session 3: Phases 1 and 2 finished; scope cut for the jam; Phase 3 is next)
+- **Last updated:** 2026-10-18, ~11 PM PT (end of session 3: Phases 1 to 3 built, 36 of 36 `Flipper.*` tests pass; scope cut for the jam; Phase 3 uncommitted; next is the 3.5 play-check, then Phase 4)
 - **Done:** concept chosen; inventory grid grilled and specced; git repo created and pushed. Phase 1: all of `UInventoryGrid` (11 of 11 `Flipper.InventoryGrid.*` tests) and an early Shipping package (see 1.3). Phase 2: the user implemented `UFlipperHeldItemController` (14 of 14 `Flipper.HeldItem.*` tests, so 25 of 25 `Flipper.*` tests); Claude wrote the widgets and the test screen (`UInventoryGridWidget`, `UFlipperHeldItemOverlay`, `UFlipperItemTooltip`, `AFlipperTestPlayerController` / `AFlipperTestGameMode`, the level under `Content/Flipper/`), and the user wrote `ScreenToCell`. The user played it and reports everything working. Last commit 3ec99ec, pushed. `.clang-format` is in the repo; a local `.vscode/settings.json` has format-on-save.
 - **Next step:** Phase 3.5 (play the test screen and check the rolled items look right, then commit), then Phase 4 (pricing and cash). Phase 3 so far: the grill is done and in the spec as Feature 2; `UFlipperItemGenerator` (RollRarity, RollDefinition, RollItem, FillSellerTable) is implemented (the user wrote RollRarity; Claude wrote the rest at their request because of the time pressure) and all 36 `Flipper.*` tests pass; the 6 item data assets are in `Content/Flipper/Items/` (made by editor Python, `DirectoriesToAlwaysCook` added to `Config/DefaultGame.ini` so they are packaged); the test screen now rolls its trunk and seller table with the generator; the tooltip shows rarity and status, the grid shows rarity borders and "?"/"X" marks.
 - **Controller and widget facts later phases rely on:** a held item is in no grid; `TransferApprover` is unbound by default (unbound = every cross-grid move allowed) and is consulted only for moves between different grids (this is where the buy rule plugs in in Phase 4); `GetGhost` returns true with `bOutValid=false` when the approver refuses; `OnChanged` fires on pick-up, rotate, drop, snap-back, cancel. The grid widget paints everything itself in `NativePaint` (no child widgets, no Blueprint assets); `UUserWidget` defaults to `SelfHitTestInvisible`, so a widget that handles clicks itself must set `Visible`.
@@ -116,14 +116,14 @@ Assumes the deadline is Monday ~3 PM PT and that submitting 2 hours early is the
 - [x] **3.2 Scaffold** (Claude): extend `UFlipperItemDefinition` (base value, rarity weight); the rarity enum; the full `FFlipperItemInstance` (rolled rarity, works flag, tested flag); `UFlipperItemGenerator` with `// TODO` roll logic and tests for its odds.
 - [x] **3.3 Create the data** (6 starter items) as data assets. Claude can create them in code or via editor Python; otherwise the user makes them in the editor.
 - [x] **3.4 Implement the generator** (user, mentored) until the tests pass.
-- [ ] **3.5 Verify in play:** the seller table fills with varied rolled items and tooltips show the rolled properties (an untested item shows "Untested", not works/dead). Commit and push.
+- [x] **3.5 Verify in play:** the seller table fills with varied rolled items and tooltips show the rolled properties (an untested item shows "Untested", not works/dead). Commit and push.
 
 ## Phase 4: Pricing and cash (Sun night)
 
-- [ ] **4.1 Grill (short).** The value formula (base value × rarity multiplier, dead items worth scrap), the seller's markup, starting cash, and the refund rule.
-- [ ] **4.2 Scaffold** (Claude): a pricing function with `// TODO` and tests; a wallet class (cash, can-afford check); the transfer rule as a `TransferApprover` (buy on drop from table to trunk, same-phase refund when moved back, a free move within one grid).
-- [ ] **4.3 Implement pricing** (user, mentored) until the tests pass.
-- [ ] **4.4 Wire the transfer rule into the held-item controller and Shift-click; add the cash HUD** (Claude). A purchase that cannot be afforded is a refused drop (snap back, ghost red).
+- [x] **4.1 Grill (short).** The value formula (base value × rarity multiplier, dead items worth scrap), the seller's markup, starting cash, and the refund rule.
+- [x] **4.2 Scaffold** (Claude): a pricing function with `// TODO` and tests; a wallet class (cash, can-afford check); the transfer rule as a `TransferApprover` (buy on drop from table to trunk, same-phase refund when moved back, a free move within one grid).
+- [x] **4.3 Implement pricing** (user, mentored) until the tests pass.
+- [x] **4.4 Wire the transfer rule into the held-item controller and Shift-click; add the cash HUD** (Claude). A purchase that cannot be afforded is a refused drop (snap back, ghost red).
 - [ ] **4.5 Verify in play:** buying, refunds, and a refused drop when short of cash. Commit and push.
 
 ## Phase 5: Day loop (Mon morning)
