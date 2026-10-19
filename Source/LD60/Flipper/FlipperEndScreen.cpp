@@ -7,7 +7,7 @@
 
 namespace
 {
-	bool IsInside(FVector2D Point, FVector2D Pos, FVector2D Size)
+	bool IsInsideRect(FVector2D Point, FVector2D Pos, FVector2D Size)
 	{
 		return Point.X >= Pos.X && Point.X < Pos.X + Size.X && Point.Y >= Pos.Y && Point.Y < Pos.Y + Size.Y;
 	}
@@ -71,7 +71,7 @@ int32 UFlipperEndScreen::NativePaint(const FPaintArgs& Args, const FGeometry& Al
 
 	const FVector2D LocalCursor = AllottedGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
 	const FVector2D ButtonPos = GetButtonPos(ScreenSize);
-	const bool		bHover = IsInside(LocalCursor, ButtonPos, GetButtonSize());
+	const bool		bHover = IsInsideRect(LocalCursor, ButtonPos, GetButtonSize());
 	FlipperPaint::Box(OutDrawElements, LayerId + 2, AllottedGeometry, ButtonPos, GetButtonSize(), bHover ? FLinearColor(0.25f, 0.25f, 0.3f, 1.f) : FLinearColor(0.12f, 0.12f, 0.15f, 1.f));
 	FlipperPaint::Outline(OutDrawElements, LayerId + 3, AllottedGeometry, ButtonPos, GetButtonSize(), 1.f, Accent);
 	FlipperPaint::Label(OutDrawElements, LayerId + 3, AllottedGeometry, ButtonPos + FVector2D(52.f, 11.f), TEXT("Play Again"), FLinearColor::White, 16);
@@ -87,7 +87,7 @@ FReply UFlipperEndScreen::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	}
 
 	const FVector2D Local = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
-	if (IsInside(Local, GetButtonPos(FVector2D(InGeometry.GetLocalSize())), GetButtonSize()))
+	if (IsInsideRect(Local, GetButtonPos(FVector2D(InGeometry.GetLocalSize())), GetButtonSize()))
 	{
 		// Reloading the level builds a new controller, which rolls a new seed: a fresh run.
 		UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
