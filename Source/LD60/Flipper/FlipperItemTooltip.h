@@ -7,6 +7,7 @@
 #include "FlipperItemTooltip.generated.h"
 
 class UFlipperHeldItemController;
+class UFlipperTradeRule;
 
 /**
  *  Full-screen, click-through widget that draws a small card next to the cursor describing the item under it
@@ -19,7 +20,8 @@ class UFlipperItemTooltip : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void Setup(UFlipperHeldItemController* InController);
+	/** InTradeRule is optional: with it, the card shows the buyer's offer for a trunk item while selling is open. */
+	void Setup(UFlipperHeldItemController* InController, UFlipperTradeRule* InTradeRule = nullptr);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -28,4 +30,7 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<UFlipperHeldItemController> Controller;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperTradeRule> TradeRule;
 };

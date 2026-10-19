@@ -173,5 +173,25 @@ Full write-up: `Docs/FlipperDayLoop-design.md`. A day is Market (timed, 60 s), t
 
 ### Handed to later grills
 
-- **Selling:** Sell-phase mechanics and the buyer's offer formula (Phase 6).
+- **Selling:** done in Feature 5.
+- **Win/lose:** what happens after the last day (Phase 7).
+
+---
+
+## Feature 5: Selling (jam scope)
+
+Full write-up: `Docs/FlipperSelling-design.md`. In the Sell phase the right-hand grid is the buyer's counter. Dropping a trunk item on it, or Shift-clicking the item, sells it and pays the offer at once. The item is removed and sales are final. The buyer pays for what is known: Tested and working 100 percent of Value, Tested and dead scrap (10 percent), Untested 50 percent of Value whether or not it works. A daily mood (Slow 80 percent, Normal 100 percent, Hot 125 percent, rolled 25 / 50 / 25) scales every offer and is shown on the HUD from the start of the day. The seller's unbought items vanish when the Sell phase starts.
+
+### Locked decisions
+
+- **Selling on the counter grid:** drag or Shift-click, paid on drop, final. *Rejected:* Shift-click only; a separate third panel.
+- **The offer:** pay for what is known (Untested 50 percent). *Rejected:* pay the truth whatever the flag says; refuse Untested items.
+
+### Routine choices
+
+- **Daily mood**, three named moods, known from the start of the day. *Rejected:* no noise; random offer per sale; mood revealed only at the Sell phase; continuous ranges.
+- All numbers are data.
+
+### Handed to later grills
+
 - **Win/lose:** what happens after the last day (Phase 7).

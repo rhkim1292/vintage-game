@@ -76,6 +76,13 @@ public:
 	FFlipperTransferCommitted TransferCommitted;
 
 	/**
+	 *  Asked, for a move between two different grids that the approver allowed, whether the item is used up by the move
+	 *  (a sale): then TransferCommitted still runs, but the item is removed from where it was and never placed in the
+	 *  target grid, which it does not even need room in for a Shift-click. Unbound = items are always placed.
+	 */
+	FFlipperTransferApprover TransferConsumes;
+
+	/**
 	 *  Asked first when the pointer goes down on an item with nothing held. If it returns true the click was used up
 	 *  (the Garage test) and the item is not picked up. Unbound = every click on an item picks it up.
 	 */

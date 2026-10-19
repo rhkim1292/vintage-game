@@ -29,12 +29,30 @@ void UFlipperTradeRule::Bind(UFlipperHeldItemController* Controller)
 			WeakThis->CommitTransfer(From, To, Item);
 		}
 	};
+	Controller->TransferConsumes = [WeakThis](const UInventoryGrid* From, const UInventoryGrid* To, const FFlipperItemInstance&) {
+		return WeakThis.IsValid() && WeakThis->IsSale(From, To);
+	};
+}
+
+int32 UFlipperTradeRule::GetOffer(const FFlipperItemInstance& Item) const
+{
+	return FlipperPricing::GetOffer(Item, PricingConfig, OfferMultiplier);
+}
+
+bool UFlipperTradeRule::IsSale(const UInventoryGrid* From, const UInventoryGrid* To) const
+{
+	return bSellOpen && From == Trunk && To == Table && From != To;
 }
 
 bool UFlipperTradeRule::CanTransfer(const UInventoryGrid* From, const UInventoryGrid* To, const FFlipperItemInstance& Item) const
 {
 	// Table to Trunk needs Wallet->CanAfford(Item.AskPrice); Trunk to Table needs Item.bBoughtThisPhase;
 	// every other pair is allowed.
+	if (IsSale(From, To))
+	{
+		return true;
+	}
+
 	if (!bOpen && From != To)
 	{
 		return false;
@@ -57,7 +75,14 @@ void UFlipperTradeRule::CommitTransfer(const UInventoryGrid* From, const UInvent
 {
 	// Table to Trunk: Wallet->TrySpend(AskPrice), then PaidPrice = AskPrice and bBoughtThisPhase = true.
 	// Trunk to Table: Wallet->Add(PaidPrice), then PaidPrice = 0 and bBoughtThisPhase = false. Other pairs: nothing.
-	if (From == Table && To == Trunk)
+	if (IsSale(From, To))
+	{
+		if (Wallet)
+		{
+			Wallet->Add(GetOffer(Item));
+		}
+	}
+	else if (From == Table && To == Trunk)
 	{
 		if (ensureMsgf(Wallet && Wallet->TrySpend(Item.AskPrice), TEXT("CommitTransfer: the buy was approved but the wallet could not pay.")))
 		{

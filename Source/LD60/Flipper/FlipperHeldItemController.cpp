@@ -141,11 +141,12 @@ bool UFlipperHeldItemController::QuickTransfer(UInventoryGrid* From, FIntPoint C
 		return false;
 	}
 
-	FIntPoint FitOrigin;
-	bool	  bFitRotated;
-	bool	  bFoundFit = To->FindFirstFit(FromGridItem, FitOrigin, bFitRotated);
+	// A sale uses the item up, so it needs no room in the target grid.
+	const bool bConsumed = From != To && TransferConsumes && TransferConsumes(From, To, FromGridItem);
 
-	if (!bFoundFit)
+	FIntPoint FitOrigin = FIntPoint::ZeroValue;
+	bool	  bFitRotated = false;
+	if (!bConsumed && !To->FindFirstFit(FromGridItem, FitOrigin, bFitRotated))
 	{
 		return false;
 	}
@@ -155,7 +156,10 @@ bool UFlipperHeldItemController::QuickTransfer(UInventoryGrid* From, FIntPoint C
 		TransferCommitted(From, To, FromGridItem);
 	}
 
-	ensureMsgf(To->TryPlace(FromGridItem, FitOrigin, bFitRotated), TEXT("Placement failed: the held item could not be transferred at found fit location."));
+	if (!bConsumed)
+	{
+		ensureMsgf(To->TryPlace(FromGridItem, FitOrigin, bFitRotated), TEXT("Placement failed: the held item could not be transferred at found fit location."));
+	}
 	From->Remove(FromGridItem);
 	return true;
 }
@@ -198,12 +202,18 @@ void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FIntPoint Ce
 		return;
 	}
 
+	// A sale uses the item up: it is paid for in TransferCommitted and never placed. It is in no grid already (held).
+	const bool bConsumed = Grid != OriginGrid && TransferConsumes && TransferConsumes(OriginGrid, Grid, HeldItem);
+
 	if (Grid != OriginGrid && TransferCommitted)
 	{
 		TransferCommitted(OriginGrid, Grid, HeldItem);
 	}
 
-	ensureMsgf(Grid->TryPlace(HeldItem, DropOrigin, bHeldRotated), TEXT("Placement failed: the held item could not be dropped at the target cell."));
+	if (!bConsumed)
+	{
+		ensureMsgf(Grid->TryPlace(HeldItem, DropOrigin, bHeldRotated), TEXT("Placement failed: the held item could not be dropped at the target cell."));
+	}
 	Init(DragThresholdPixels);
 	OnChanged.Broadcast();
 }

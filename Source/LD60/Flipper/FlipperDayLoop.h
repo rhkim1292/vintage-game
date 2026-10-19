@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "FlipperTypes.h"
+#include "FlipperPricing.h"
 #include "FlipperDayLoop.generated.h"
 
 class UInventoryGrid;
@@ -65,6 +66,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFlipperPhaseChanged, EFlipperPhase /*New
  *    - Leaving a phase first snaps back any held item. Leaving Market also clears bBoughtThisPhase on every trunk item
  *      (they can no longer be refunded) and closes the trade rule.
  *    - Entering Garage gives TestChargesPerDay charges. TryTestAt spends one to reveal an Untested trunk item.
+ *    - Selling (Feature 5): entering Market rolls the day's buyer mood (its own FRandomStream, so the table roll is not
+ *      disturbed) and hands its multiplier to the trade rule. Entering Sell clears the seller table (the seller has left)
+ *      and opens selling on the trade rule; leaving Sell closes it.
  */
 UCLASS(BlueprintType)
 class UFlipperDayLoop : public UObject
@@ -77,6 +81,9 @@ public:
 	 *  Seed makes the rolled seller tables repeatable: day N rolls with FRandomStream(Seed + N).
 	 */
 	void Init(const FFlipperDayConfig& InConfig, UInventoryGrid* InTrunk, UInventoryGrid* InTable, UFlipperItemGenerator* InGenerator, UFlipperHeldItemController* InHeldItemController, UFlipperTradeRule* InTradeRule, int32 InSeed);
+
+	/** The moods are rolled and scaled with these numbers. Call before StartRun; the default is FFlipperPricingConfig(). */
+	void SetPricingConfig(const FFlipperPricingConfig& InConfig) { PricingConfig = InConfig; }
 
 	/** Hooks the Garage test click up to the controller (its PickupIntercept). */
 	void Bind(UFlipperHeldItemController* Controller);
@@ -118,6 +125,12 @@ public:
 	/** Seconds the phase banner still has to show: BannerSeconds right after a phase change, counting down to 0. */
 	float GetBannerTimeLeft() const { return BannerTimeLeft; }
 
+	/** Today's buyer mood. Rolled when the day starts (Market), so it is known all day. Normal before StartRun. */
+	EFlipperBuyerMood GetMood() const { return Mood; }
+
+	/** The offer multiplier of today's mood. */
+	float GetMoodMultiplier() const { return FlipperPricing::GetMoodMultiplier(Mood, PricingConfig); }
+
 	FOnFlipperPhaseChanged OnPhaseChanged;
 
 private:
@@ -145,7 +158,12 @@ private:
 	int32		   TestChargesLeft = 0;
 	float		   BannerTimeLeft = 0.f;
 
+	FFlipperPricingConfig PricingConfig;
+	EFlipperBuyerMood	  Mood = EFlipperBuyerMood::Normal;
+
 	void EnterPhase(EFlipperPhase NewPhase);
+	void ClearSellerTable();
 	void RollSellerTable();
+	void RollMood();
 	void ClearBoughtFlags();
 };

@@ -58,7 +58,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	Overlay->AddToViewport(10);
 
 	Tooltip = CreateWidget<UFlipperItemTooltip>(this);
-	Tooltip->Setup(HeldItemController);
+	Tooltip->Setup(HeldItemController, TradeRule);
 	Tooltip->AddToViewport(11);
 
 	CashWidget = CreateWidget<UFlipperCashWidget>(this);

@@ -402,9 +402,13 @@ bool FFlipperDayTradingTest::RunTest(const FString& Parameters)
 	F.Loop->EndPhase();
 	TestFalse(TEXT("so is the Sell phase"), F.Rule->IsOpen());
 
-	// Shift-click a table item into the trunk during Sell: refused.
-	const FIntPoint Another = F.Table->GetPlacedItems()[0].Placement.Origin;
-	TestFalse(TEXT("a quick-transfer outside the Market is refused"), F.Controller->QuickTransfer(F.Table.Get(), Another, F.Trunk.Get()));
+	// Shift-click a table item into the trunk during Sell: refused. (The Sell phase empties the table, so put one there.)
+	FFlipperItemInstance Stray;
+	Stray.Id = F.NextItemId++;
+	Stray.Definition = F.Definitions[0].Get();
+	F.Table->TryPlace(Stray, FIntPoint(0, 0), false);
+	TestFalse(TEXT("a quick-transfer outside the Market is refused"), F.Controller->QuickTransfer(F.Table.Get(), FIntPoint(0, 0), F.Trunk.Get()));
+	F.Table->Remove(Stray);
 
 	F.Loop->EndPhase();
 	TestTrue(TEXT("and the next day's Market opens it again"), F.Rule->IsOpen());

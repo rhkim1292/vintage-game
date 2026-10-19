@@ -31,6 +31,7 @@ void UFlipperDayLoop::Init(const FFlipperDayConfig& InConfig, UInventoryGrid* In
 	TimeLeft = 0.f;
 	TestChargesLeft = 0;
 	BannerTimeLeft = 0.f;
+	Mood = EFlipperBuyerMood::Normal;
 }
 
 void UFlipperDayLoop::Bind(UFlipperHeldItemController* Controller)
@@ -140,6 +141,7 @@ void UFlipperDayLoop::EnterPhase(EFlipperPhase NewPhase)
 	{
 	case EFlipperPhase::Market:
 		TimeLeft = Config.MarketSeconds;
+		RollMood();
 		RollSellerTable();
 		break;
 	case EFlipperPhase::Garage:
@@ -147,23 +149,26 @@ void UFlipperDayLoop::EnterPhase(EFlipperPhase NewPhase)
 		break;
 	case EFlipperPhase::Sell:
 		TimeLeft = Config.SellSeconds;
+		// The seller has packed up: the table becomes the buyer's counter.
+		ClearSellerTable();
 		break;
 	default:
 		break;
 	}
 
-	// Buying and refunds only happen in the Market.
+	// Buying and refunds only happen in the Market, selling only in the Sell phase.
 	if (TradeRule)
 	{
 		TradeRule->SetOpen(NewPhase == EFlipperPhase::Market);
+		TradeRule->SetSellOpen(NewPhase == EFlipperPhase::Sell);
 	}
 
 	OnPhaseChanged.Broadcast(Phase, Day);
 }
 
-void UFlipperDayLoop::RollSellerTable()
+void UFlipperDayLoop::ClearSellerTable()
 {
-	if (!Table || !Generator)
+	if (!Table)
 	{
 		return;
 	}
@@ -173,9 +178,33 @@ void UFlipperDayLoop::RollSellerTable()
 	{
 		Table->Remove(Placed.Item);
 	}
+}
+
+void UFlipperDayLoop::RollSellerTable()
+{
+	if (!Table || !Generator)
+	{
+		return;
+	}
+
+	ClearSellerTable();
 
 	FRandomStream DayRandom(Seed + Day);
 	Generator->FillSellerTable(Table, DayRandom);
+}
+
+void UFlipperDayLoop::RollMood()
+{
+	// Its own stream, offset from the seller table's, so the two rolls never disturb each other.
+	constexpr int32 MoodSeedOffset = 7919;
+	FRandomStream	MoodRandom(Seed + Day + MoodSeedOffset);
+	Mood = FlipperPricing::RollMood(PricingConfig, MoodRandom);
+
+	if (TradeRule)
+	{
+		TradeRule->SetPricingConfig(PricingConfig);
+		TradeRule->SetOfferMultiplier(GetMoodMultiplier());
+	}
 }
 
 void UFlipperDayLoop::ClearBoughtFlags()

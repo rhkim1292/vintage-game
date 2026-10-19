@@ -6,6 +6,15 @@
 #include "FlipperTypes.h"
 #include "FlipperPricing.generated.h"
 
+/** How the buyer feels today (Docs/FlipperSpec.md, Feature 5). One mood per day scales every offer. */
+UENUM(BlueprintType)
+enum class EFlipperBuyerMood : uint8
+{
+	Slow,
+	Normal,
+	Hot,
+};
+
 /**
  *  Every number the prices are made from. Kept in data (not in code) so the balance pass can tune it without
  *  recompiling. Defaults are the first guesses from Docs/FlipperSpec.md, Feature 3.
@@ -44,6 +53,30 @@ struct FFlipperPricingConfig
 	/** Cash the player starts the run with. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
 	int32 StartingCash = 200;
+
+	/** The buyer pays this fraction of Value for an Untested item, whether or not it works (Feature 5). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float UntestedOfferFraction = 0.5f;
+
+	/** The offer multiplier of each buyer mood. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float SlowMoodMultiplier = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float NormalMoodMultiplier = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float HotMoodMultiplier = 1.25f;
+
+	/** How often each mood is rolled, relative to the others (25 / 50 / 25 means Normal is twice as likely as Slow or Hot). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float SlowMoodWeight = 25.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float NormalMoodWeight = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float HotMoodWeight = 25.f;
 };
 
 /**
@@ -85,4 +118,20 @@ namespace FlipperPricing
 	 *  know. Takes exactly one number from Random so a fixed seed gives the same asks every run.
 	 */
 	int32 GetAskPrice(const FFlipperItemInstance& Item, const FFlipperPricingConfig& Config, FRandomStream& Random);
+
+	/** The multiplier of this mood from the config. */
+	float GetMoodMultiplier(EFlipperBuyerMood Mood, const FFlipperPricingConfig& Config);
+
+	/** Rolls a mood by the config's weights. Takes exactly one number from Random. */
+	EFlipperBuyerMood RollMood(const FFlipperPricingConfig& Config, FRandomStream& Random);
+
+	/**
+	 *  What the buyer pays for this item (Docs/FlipperSelling-design.md). The buyer pays for what is KNOWN:
+	 *    - Tested and working: the Value.
+	 *    - Tested and dead:    the scrap value.
+	 *    - Untested:           Value x UntestedOfferFraction, whether or not it works (the buyer does not open it).
+	 *  The result is that base times MoodMultiplier, rounded once to the nearest whole dollar, never below 1 for an
+	 *  item with a Definition. An item with no Definition gets 0. It ignores AskPrice and PaidPrice.
+	 */
+	int32 GetOffer(const FFlipperItemInstance& Item, const FFlipperPricingConfig& Config, float MoodMultiplier);
 } // namespace FlipperPricing

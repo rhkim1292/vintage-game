@@ -3,13 +3,15 @@
 #include "FlipperItemTooltip.h"
 #include "FlipperHeldItemController.h"
 #include "FlipperPaint.h"
+#include "FlipperTradeRule.h"
 #include "Framework/Application/SlateApplication.h"
 #include "InventoryGrid.h"
 #include "InventoryGridWidget.h"
 
-void UFlipperItemTooltip::Setup(UFlipperHeldItemController* InController)
+void UFlipperItemTooltip::Setup(UFlipperHeldItemController* InController, UFlipperTradeRule* InTradeRule)
 {
 	Controller = InController;
+	TradeRule = InTradeRule;
 }
 
 void UFlipperItemTooltip::NativeConstruct()
@@ -42,7 +44,10 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 
 	const UFlipperItemDefinition* Definition = Placed->Item.Definition;
 	const FVector2D				  Pos = AllottedGeometry.AbsoluteToLocal(AbsoluteCursor) + FVector2D(16.f, 16.f);
-	const FVector2D				  Size(190.f, 122.f);
+	// While selling is open, a trunk item also shows what the buyer would pay for it today (Docs/FlipperSpec.md, Feature 5).
+	// (The counter never holds anything, because a sold item is used up, so any item under the cursor is a trunk item.)
+	const bool		bShowOffer = TradeRule && TradeRule->IsSellOpen();
+	const FVector2D Size(190.f, bShowOffer ? 144.f : 122.f);
 	const FLinearColor			  RarityColor = FlipperRarity::GetColor(Placed->Item.Rarity);
 	const FLinearColor			  Dim(0.7f, 0.7f, 0.75f, 1.f);
 
@@ -70,6 +75,11 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 	else if (Placed->Item.AskPrice > 0)
 	{
 		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 94.f), FString::Printf(TEXT("Ask $%d"), Placed->Item.AskPrice), FLinearColor(1.f, 0.85f, 0.3f, 1.f));
+	}
+
+	if (bShowOffer)
+	{
+		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 116.f), FString::Printf(TEXT("Offer $%d"), TradeRule->GetOffer(Placed->Item)), FLinearColor(0.3f, 0.9f, 0.4f, 1.f));
 	}
 
 	return LayerId + 2;

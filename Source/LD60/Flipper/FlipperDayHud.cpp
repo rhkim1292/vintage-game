@@ -50,6 +50,32 @@ namespace
 		}
 	}
 
+	const TCHAR* GetMoodName(EFlipperBuyerMood Mood)
+	{
+		switch (Mood)
+		{
+		case EFlipperBuyerMood::Slow:
+			return TEXT("Slow");
+		case EFlipperBuyerMood::Hot:
+			return TEXT("Hot");
+		default:
+			return TEXT("Normal");
+		}
+	}
+
+	FLinearColor GetMoodColor(EFlipperBuyerMood Mood)
+	{
+		switch (Mood)
+		{
+		case EFlipperBuyerMood::Slow:
+			return FLinearColor(0.6f, 0.6f, 0.65f, 1.f);
+		case EFlipperBuyerMood::Hot:
+			return FLinearColor(0.3f, 0.9f, 0.4f, 1.f);
+		default:
+			return FLinearColor::White;
+		}
+	}
+
 	bool IsInside(FVector2D Point, FVector2D Pos, FVector2D Size)
 	{
 		return Point.X >= Pos.X && Point.X < Pos.X + Size.X && Point.Y >= Pos.Y && Point.Y < Pos.Y + Size.Y;
@@ -95,6 +121,13 @@ int32 UFlipperDayHud::NativePaint(const FPaintArgs& Args, const FGeometry& Allot
 		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, FVector2D(180.f, 6.f), FString::Printf(TEXT("%d:%02d"), Seconds / 60, Seconds % 60), TimerColor);
 	}
 
+	// The buyer's mood is known all day, so the player can plan the purchases and the tests around it.
+	if (Phase != EFlipperPhase::Finished)
+	{
+		const EFlipperBuyerMood Mood = DayLoop->GetMood();
+		FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, FVector2D(250.f, 6.f), FString::Printf(TEXT("Buyer: %s x%s"), GetMoodName(Mood), *FString::SanitizeFloat(DayLoop->GetMoodMultiplier())), GetMoodColor(Mood));
+	}
+
 	FString Hint;
 	switch (Phase)
 	{
@@ -105,7 +138,7 @@ int32 UFlipperDayHud::NativePaint(const FPaintArgs& Args, const FGeometry& Allot
 		Hint = FString::Printf(TEXT("Click an Untested item to test it   (tests left: %d)"), DayLoop->GetTestChargesLeft());
 		break;
 	case EFlipperPhase::Sell:
-		Hint = TEXT("Selling is not built yet");
+		Hint = TEXT("Drag or Shift-click items onto this counter to sell them");
 		break;
 	default:
 		Hint = TEXT("The run is over");

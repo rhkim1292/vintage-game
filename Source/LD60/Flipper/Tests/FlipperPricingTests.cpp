@@ -242,4 +242,115 @@ bool FFlipperWalletTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Selling (Docs/FlipperSpec.md, Feature 5): the buyer's offer and the daily mood.
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingOfferKnownStateTest, "Flipper.Pricing.OfferKnownState", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingOfferKnownStateTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	// Tested and working: the Value.
+	TestEqual(TEXT("Tested working Common 100 is offered 100"), FlipperPricing::GetOffer(F.MakeItem(100, EFlipperRarity::Common, true), F.Config, 1.f), 100);
+	TestEqual(TEXT("Tested working Uncommon 100 (Value 200) is offered 200"), FlipperPricing::GetOffer(F.MakeItem(100, EFlipperRarity::Uncommon, true), F.Config, 1.f), 200);
+
+	// Tested and dead: scrap.
+	FFlipperItemInstance Dead = F.MakeItem(100, EFlipperRarity::Common, true);
+	Dead.bWorks = false;
+	TestEqual(TEXT("Tested dead Common 100 is offered scrap, 10"), FlipperPricing::GetOffer(Dead, F.Config, 1.f), 10);
+	Dead.Rarity = EFlipperRarity::Rare;
+	TestEqual(TEXT("Tested dead Rare 100 (Value 400) is offered scrap, 40"), FlipperPricing::GetOffer(Dead, F.Config, 1.f), 40);
+
+	// Untested: half the Value, whether or not it works (the buyer does not open it).
+	FFlipperItemInstance Untested = F.MakeItem(100, EFlipperRarity::Common, false);
+	TestEqual(TEXT("Untested working Common 100 is offered 50"), FlipperPricing::GetOffer(Untested, F.Config, 1.f), 50);
+	Untested.bWorks = false;
+	TestEqual(TEXT("Untested dead Common 100 is offered the same 50"), FlipperPricing::GetOffer(Untested, F.Config, 1.f), 50);
+	TestEqual(TEXT("Untested Rare 100 (Value 400) is offered 200"), FlipperPricing::GetOffer(F.MakeItem(100, EFlipperRarity::Rare, false), F.Config, 1.f), 200);
+
+	// The untested fraction comes from the config.
+	F.Config.UntestedOfferFraction = 0.4f;
+	TestEqual(TEXT("Untested at 40 percent is offered 40"), FlipperPricing::GetOffer(F.MakeItem(100, EFlipperRarity::Common, false), F.Config, 1.f), 40);
+
+	// What the player paid or what the seller asked does not matter.
+	FFlipperItemInstance Bought = F.MakeItem(100, EFlipperRarity::Common, true);
+	Bought.PaidPrice = 500;
+	Bought.AskPrice = 500;
+	TestEqual(TEXT("the offer ignores PaidPrice and AskPrice"), FlipperPricing::GetOffer(Bought, F.Config, 1.f), 100);
+
+	TestEqual(TEXT("an item with no Definition is offered 0"), FlipperPricing::GetOffer(FFlipperItemInstance(), F.Config, 1.f), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingOfferMoodTest, "Flipper.Pricing.OfferMood", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingOfferMoodTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	const FFlipperItemInstance Working = F.MakeItem(100, EFlipperRarity::Common, true);
+	TestEqual(TEXT("a Slow day (x0.8) offers 80"), FlipperPricing::GetOffer(Working, F.Config, 0.8f), 80);
+	TestEqual(TEXT("a Hot day (x1.25) offers 125"), FlipperPricing::GetOffer(Working, F.Config, 1.25f), 125);
+
+	// The mood scales every kind of offer, scrap and Untested included.
+	FFlipperItemInstance Dead = F.MakeItem(100, EFlipperRarity::Common, true);
+	Dead.bWorks = false;
+	TestEqual(TEXT("scrap 10 on a Slow day is 8"), FlipperPricing::GetOffer(Dead, F.Config, 0.8f), 8);
+	TestEqual(TEXT("Untested 50 on a Slow day is 40"), FlipperPricing::GetOffer(F.MakeItem(100, EFlipperRarity::Common, false), F.Config, 0.8f), 40);
+	TestEqual(TEXT("Untested Common 80 on a Hot day: 80 x 0.5 x 1.25 is 50"), FlipperPricing::GetOffer(F.MakeItem(80, EFlipperRarity::Common, false), F.Config, 1.25f), 50);
+
+	// Rounded to the nearest dollar.
+	TestEqual(TEXT("35 x 1.25 is 43.75, which rounds to 44"), FlipperPricing::GetOffer(F.MakeItem(35, EFlipperRarity::Common, true), F.Config, 1.25f), 44);
+
+	// Never below $1 for a real item, even when scrap on a Slow day rounds to 0.
+	FFlipperItemInstance Cheap = F.MakeItem(1, EFlipperRarity::Common, true);
+	Cheap.bWorks = false;
+	TestEqual(TEXT("a $1 dead item on a Slow day is still offered $1"), FlipperPricing::GetOffer(Cheap, F.Config, 0.8f), 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingMoodTest, "Flipper.Pricing.Mood", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingMoodTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	TestEqual(TEXT("Slow is x0.8"), FlipperPricing::GetMoodMultiplier(EFlipperBuyerMood::Slow, F.Config), 0.8f);
+	TestEqual(TEXT("Normal is x1"), FlipperPricing::GetMoodMultiplier(EFlipperBuyerMood::Normal, F.Config), 1.f);
+	TestEqual(TEXT("Hot is x1.25"), FlipperPricing::GetMoodMultiplier(EFlipperBuyerMood::Hot, F.Config), 1.25f);
+
+	// 25 / 50 / 25 by default.
+	FRandomStream Random(42);
+	int32		  Counts[3] = { 0, 0, 0 };
+	const int32	  Rolls = 4000;
+	for (int32 i = 0; i < Rolls; ++i)
+	{
+		++Counts[static_cast<int32>(FlipperPricing::RollMood(F.Config, Random))];
+	}
+	TestTrue(FString::Printf(TEXT("about 25 percent Slow (got %d of %d)"), Counts[0], Rolls), Counts[0] > Rolls * 0.22 && Counts[0] < Rolls * 0.28);
+	TestTrue(FString::Printf(TEXT("about 50 percent Normal (got %d of %d)"), Counts[1], Rolls), Counts[1] > Rolls * 0.47 && Counts[1] < Rolls * 0.53);
+	TestTrue(FString::Printf(TEXT("about 25 percent Hot (got %d of %d)"), Counts[2], Rolls), Counts[2] > Rolls * 0.22 && Counts[2] < Rolls * 0.28);
+
+	// The weights come from the config.
+	F.Config.SlowMoodWeight = 0.f;
+	F.Config.NormalMoodWeight = 0.f;
+	F.Config.HotMoodWeight = 1.f;
+	bool bAlwaysHot = true;
+	for (int32 i = 0; i < 100; ++i)
+	{
+		bAlwaysHot &= FlipperPricing::RollMood(F.Config, Random) == EFlipperBuyerMood::Hot;
+	}
+	TestTrue(TEXT("all the weight on Hot always rolls Hot"), bAlwaysHot);
+
+	// Same seed, same mood; exactly one number is drawn per roll.
+	FFlipperPricingConfig Default;
+	FRandomStream		  A(7);
+	FRandomStream		  B(7);
+	TestTrue(TEXT("a fixed seed gives the same mood"), FlipperPricing::RollMood(Default, A) == FlipperPricing::RollMood(Default, B));
+	FRandomStream Used(7);
+	FRandomStream Reference(7);
+	FlipperPricing::RollMood(Default, Used);
+	Reference.GetFraction();
+	TestEqual(TEXT("exactly one number is drawn per roll"), Used.GetCurrentSeed(), Reference.GetCurrentSeed());
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS
