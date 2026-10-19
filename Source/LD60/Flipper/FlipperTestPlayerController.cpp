@@ -1,0 +1,130 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#include "FlipperTestPlayerController.h"
+#include "Components/InputComponent.h"
+#include "Framework/Application/SlateApplication.h"
+#include "FlipperHeldItemController.h"
+#include "FlipperHeldItemOverlay.h"
+#include "FlipperItemDefinition.h"
+#include "FlipperItemTooltip.h"
+#include "InventoryGrid.h"
+#include "InventoryGridWidget.h"
+
+void AFlipperTestPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Trunk = NewObject<UInventoryGrid>(this);
+	Trunk->Init(10, 6);
+	SellerTable = NewObject<UInventoryGrid>(this);
+	SellerTable->Init(8, 5);
+
+	HeldItemController = NewObject<UFlipperHeldItemController>(this);
+	HeldItemController->Init(5.f);
+
+	FillTestItems();
+
+	TrunkWidget = CreateWidget<UInventoryGridWidget>(this);
+	TrunkWidget->Setup(Trunk, HeldItemController, SellerTable, CellSize);
+	TrunkWidget->AddToViewport(0);
+	TrunkWidget->SetDesiredSizeInViewport(TrunkWidget->GetPixelSize());
+	TrunkWidget->SetPositionInViewport(FVector2D(40.f, 80.f), false);
+
+	SellerTableWidget = CreateWidget<UInventoryGridWidget>(this);
+	SellerTableWidget->Setup(SellerTable, HeldItemController, Trunk, CellSize);
+	SellerTableWidget->AddToViewport(0);
+	SellerTableWidget->SetDesiredSizeInViewport(SellerTableWidget->GetPixelSize());
+	SellerTableWidget->SetPositionInViewport(FVector2D(40.f + 10 * CellSize + 60.f, 80.f), false);
+
+	Overlay = CreateWidget<UFlipperHeldItemOverlay>(this);
+	Overlay->Setup(HeldItemController, CellSize);
+	Overlay->AddToViewport(10);
+
+	Tooltip = CreateWidget<UFlipperItemTooltip>(this);
+	Tooltip->Setup(HeldItemController);
+	Tooltip->AddToViewport(11);
+
+	bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void AFlipperTestPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	InputComponent->BindKey(EKeys::R, IE_Pressed, this, &AFlipperTestPlayerController::OnRotatePressed);
+	InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &AFlipperTestPlayerController::OnRotatePressed);
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &AFlipperTestPlayerController::OnCancelPressed);
+	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &AFlipperTestPlayerController::OnLeftPressed);
+}
+
+UFlipperItemDefinition* AFlipperTestPlayerController::MakeDefinition(const TCHAR* Name, int32 Width, int32 Height)
+{
+	UFlipperItemDefinition* Definition = NewObject<UFlipperItemDefinition>(this);
+	Definition->DisplayName = FText::FromString(Name);
+	Definition->Width = Width;
+	Definition->Height = Height;
+	TestDefinitions.Add(Definition);
+	return Definition;
+}
+
+void AFlipperTestPlayerController::FillTestItems()
+{
+	UFlipperItemDefinition* Cartridge = MakeDefinition(TEXT("Cartridge"), 1, 1);
+	UFlipperItemDefinition* Walkman = MakeDefinition(TEXT("Walkman"), 2, 1);
+	UFlipperItemDefinition* GameBoy = MakeDefinition(TEXT("Game Boy"), 2, 3);
+	UFlipperItemDefinition* Console = MakeDefinition(TEXT("Console"), 3, 2);
+
+	int32 NextId = 1;
+	auto  Stock = [&NextId](UInventoryGrid* Grid, UFlipperItemDefinition* Definition)
+	{
+		FFlipperItemInstance Item;
+		Item.Id = NextId++;
+		Item.Definition = Definition;
+		FIntPoint Origin;
+		bool	  bRotated = false;
+		if (Grid->FindFirstFit(Item, Origin, bRotated))
+		{
+			Grid->TryPlace(Item, Origin, bRotated);
+		}
+	};
+
+	for (UFlipperItemDefinition* Definition : { Console, GameBoy, GameBoy, Walkman, Walkman, Cartridge, Cartridge, Cartridge })
+	{
+		Stock(Trunk, Definition);
+	}
+	for (UFlipperItemDefinition* Definition : { Walkman, Cartridge, Console })
+	{
+		Stock(SellerTable, Definition);
+	}
+}
+
+void AFlipperTestPlayerController::OnRotatePressed()
+{
+	// A right-click over a grid is handled by the grid widget and never gets here.
+	if (HeldItemController)
+	{
+		HeldItemController->Rotate();
+	}
+}
+
+void AFlipperTestPlayerController::OnCancelPressed()
+{
+	if (HeldItemController)
+	{
+		HeldItemController->Cancel();
+	}
+}
+
+void AFlipperTestPlayerController::OnLeftPressed()
+{
+	// A left click over a grid is handled by the grid widget. One that reaches here landed on empty space:
+	// while holding, that is an invalid drop and snaps the item back.
+	if (HeldItemController && HeldItemController->IsHolding())
+	{
+		HeldItemController->PointerDown(nullptr, FIntPoint::ZeroValue, FSlateApplication::Get().GetCursorPos());
+	}
+}
