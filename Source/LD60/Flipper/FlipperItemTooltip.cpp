@@ -42,12 +42,25 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 
 	const UFlipperItemDefinition* Definition = Placed->Item.Definition;
 	const FVector2D				  Pos = AllottedGeometry.AbsoluteToLocal(AbsoluteCursor) + FVector2D(16.f, 16.f);
-	const FVector2D				  Size(180.f, 56.f);
+	const FVector2D				  Size(190.f, 100.f);
+	const FLinearColor			  RarityColor = FlipperRarity::GetColor(Placed->Item.Rarity);
+	const FLinearColor			  Dim(0.7f, 0.7f, 0.75f, 1.f);
+
+	// Status line (Docs/FlipperSpec.md, Feature 2): Untested hides the works/dead flag; a Tested item shows it.
+	FString		 Status = TEXT("Untested");
+	FLinearColor StatusColor = Dim;
+	if (Placed->Item.bTested)
+	{
+		Status = Placed->Item.bWorks ? TEXT("Tested: works") : TEXT("DEAD");
+		StatusColor = Placed->Item.bWorks ? FLinearColor(0.3f, 0.9f, 0.4f, 1.f) : FLinearColor(1.f, 0.25f, 0.25f, 1.f);
+	}
 
 	FlipperPaint::Box(OutDrawElements, LayerId, AllottedGeometry, Pos, Size, FLinearColor(0.02f, 0.02f, 0.03f, 0.92f));
-	FlipperPaint::Outline(OutDrawElements, LayerId + 1, AllottedGeometry, Pos, Size, 1.f, FLinearColor(0.7f, 0.7f, 0.75f, 1.f));
-	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 6.f), Definition->DisplayName.ToString(), FLinearColor::White);
-	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 28.f), FString::Printf(TEXT("%d x %d"), Definition->Width, Definition->Height), FLinearColor(0.7f, 0.7f, 0.75f, 1.f));
+	FlipperPaint::Outline(OutDrawElements, LayerId + 1, AllottedGeometry, Pos, Size, 1.f, RarityColor);
+	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 6.f), Definition->DisplayName.ToString(), RarityColor);
+	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 28.f), FString::Printf(TEXT("%d x %d"), Definition->Width, Definition->Height), Dim);
+	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 50.f), FlipperRarity::GetName(Placed->Item.Rarity), RarityColor);
+	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(8.f, 72.f), Status, StatusColor);
 
 	return LayerId + 2;
 }

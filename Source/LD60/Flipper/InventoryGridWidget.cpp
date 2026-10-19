@@ -113,8 +113,18 @@ int32 UInventoryGridWidget::NativePaint(const FPaintArgs& Args, const FGeometry&
 		const FVector2D Size = FVector2D(Footprint.X * CellSize - 4.f, Footprint.Y * CellSize - 4.f);
 		const uint8		Hue = static_cast<uint8>(GetTypeHash(Placed.Item.Definition->GetFName()) % 256);
 		FlipperPaint::Box(OutDrawElements, LayerId + 1, AllottedGeometry, Pos, Size, FLinearColor::MakeFromHSV8(Hue, 140, 190));
-		FlipperPaint::Outline(OutDrawElements, LayerId + 2, AllottedGeometry, Pos, Size, 2.f, FLinearColor(0.9f, 0.9f, 0.9f, 1.f));
+		FlipperPaint::Outline(OutDrawElements, LayerId + 2, AllottedGeometry, Pos, Size, 3.f, FlipperRarity::GetColor(Placed.Item.Rarity));
 		FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, Pos + FVector2D(4.f, 2.f), Placed.Item.Definition->DisplayName.ToString(), FLinearColor::Black);
+			// A "?" marks an item whose works/dead flag is still hidden; a red "X" marks one that tested dead.
+			const FVector2D MarkPos = Pos + FVector2D(Size.X - 16.f, Size.Y - 22.f);
+			if (!Placed.Item.bTested)
+			{
+				FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, MarkPos, TEXT("?"), FLinearColor::White);
+			}
+			else if (!Placed.Item.bWorks)
+			{
+				FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, MarkPos, TEXT("X"), FLinearColor(1.f, 0.15f, 0.15f, 1.f));
+			}
 	}
 
 	// Ghost: only on the grid the cursor is over, only while something is held

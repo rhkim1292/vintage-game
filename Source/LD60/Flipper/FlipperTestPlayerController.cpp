@@ -2,6 +2,8 @@
 
 #include "FlipperTestPlayerController.h"
 #include "Components/InputComponent.h"
+#include "Engine/ObjectLibrary.h"
+#include "FlipperItemGenerator.h"
 #include "Framework/Application/SlateApplication.h"
 #include "FlipperHeldItemController.h"
 #include "FlipperHeldItemOverlay.h"
@@ -22,7 +24,10 @@ void AFlipperTestPlayerController::BeginPlay()
 	HeldItemController = NewObject<UFlipperHeldItemController>(this);
 	HeldItemController->Init(5.f);
 
-	FillTestItems();
+	if (!FillRolledItems())
+	{
+		FillTestItems();
+	}
 
 	TrunkWidget = CreateWidget<UInventoryGridWidget>(this);
 	TrunkWidget->Setup(Trunk, HeldItemController, SellerTable, CellSize);
@@ -100,6 +105,38 @@ void AFlipperTestPlayerController::FillTestItems()
 	{
 		Stock(SellerTable, Definition);
 	}
+}
+
+bool AFlipperTestPlayerController::FillRolledItems()
+{
+	UObjectLibrary* Library = UObjectLibrary::CreateLibrary(UFlipperItemDefinition::StaticClass(), false, GIsEditor);
+	Library->LoadAssetsFromPath(TEXT("/Game/Flipper/Items"));
+	TArray<UFlipperItemDefinition*> Definitions;
+	Library->GetObjects<UFlipperItemDefinition>(Definitions);
+	if (Definitions.IsEmpty())
+	{
+		return false;
+	}
+
+	Generator = NewObject<UFlipperItemGenerator>(this);
+	Generator->Init(Definitions, FFlipperGenerationConfig());
+
+	FRandomStream Random;
+	Random.GenerateNewSeed();
+
+	// A few rolled items in the trunk to play with, and a full day's seller table.
+	for (int32 i = 0; i < 4; ++i)
+	{
+		const FFlipperItemInstance Item = Generator->RollItem(Random);
+		FIntPoint				   Origin;
+		bool					   bRotated = false;
+		if (Item.Definition && Trunk->FindFirstFit(Item, Origin, bRotated))
+		{
+			Trunk->TryPlace(Item, Origin, bRotated);
+		}
+	}
+	Generator->FillSellerTable(SellerTable, Random);
+	return true;
 }
 
 void AFlipperTestPlayerController::OnRotatePressed()

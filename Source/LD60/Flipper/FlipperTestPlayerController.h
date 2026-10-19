@@ -12,6 +12,7 @@ class UFlipperHeldItemController;
 class UFlipperHeldItemOverlay;
 class UFlipperItemTooltip;
 class UFlipperItemDefinition;
+class UFlipperItemGenerator;
 
 /**
  *  Phase 2.2 test screen: builds a 10x6 trunk and an 8x5 seller table, fills them with hard-coded test items,
@@ -44,6 +45,9 @@ private:
 	TArray<TObjectPtr<UFlipperItemDefinition>> TestDefinitions;
 
 	UPROPERTY()
+	TObjectPtr<UFlipperItemGenerator> Generator;
+
+	UPROPERTY()
 	TObjectPtr<UInventoryGridWidget> TrunkWidget;
 
 	UPROPERTY()
@@ -57,6 +61,9 @@ private:
 
 	UFlipperItemDefinition* MakeDefinition(const TCHAR* Name, int32 Width, int32 Height);
 	void					FillTestItems();
+
+	/** Loads the item definition data assets from /Game/Flipper/Items and rolls the trunk and seller table with the generator. False if none are found. */
+	bool FillRolledItems();
 
 	void OnRotatePressed();
 	void OnCancelPressed();
