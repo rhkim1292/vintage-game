@@ -34,7 +34,15 @@ public:
 	void Bind(UFlipperHeldItemController* Controller);
 
 	/**
+	 *  The day loop closes trading outside the Market phase: while closed, CanTransfer refuses every move between two
+	 *  different grids. Open by default.
+	 */
+	void SetOpen(bool bInOpen) { bOpen = bInOpen; }
+	bool IsOpen() const { return bOpen; }
+
+	/**
 	 *  May Item move from From to To? Does not change anything.
+	 *    - Trading closed (SetOpen(false)) and From is not To: false.
 	 *    - Table to Trunk: true only if the wallet can afford Item.AskPrice.
 	 *    - Trunk to Table: true only if Item.bBoughtThisPhase.
 	 *    - Any other pair: true.
@@ -51,6 +59,8 @@ public:
 	void CommitTransfer(const UInventoryGrid* From, const UInventoryGrid* To, FFlipperItemInstance& Item);
 
 private:
+	bool bOpen = true;
+
 	UPROPERTY()
 	TObjectPtr<UInventoryGrid> Table;
 

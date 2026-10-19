@@ -75,6 +75,12 @@ public:
 	 */
 	FFlipperTransferCommitted TransferCommitted;
 
+	/**
+	 *  Asked first when the pointer goes down on an item with nothing held. If it returns true the click was used up
+	 *  (the Garage test) and the item is not picked up. Unbound = every click on an item picks it up.
+	 */
+	TFunction<bool(UInventoryGrid* Grid, FIntPoint Cell)> PickupIntercept;
+
 	/** Fired after a pick-up, rotation, drop, snap-back or cancel. */
 	FOnHeldItemChanged OnChanged;
 

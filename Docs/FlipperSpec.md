@@ -153,4 +153,25 @@ Full write-up: `Docs/FlipperPricing-design.md`. Value = base value x rarity mult
 ### Handed to later grills
 
 - **Selling:** the buyer's offer formula (Phase 6).
-- **Day loop:** clearing the bought-this-phase flag at the end of each Market phase.
+- **Day loop:** clearing the bought-this-phase flag at the end of each Market phase (done in Feature 4).
+
+---
+
+## Feature 4: Day loop (jam scope)
+
+Full write-up: `Docs/FlipperDayLoop-design.md`. A day is Market (timed, 60 s), then Garage (no clock, ends with a Done button), then Sell (timed, 45 s). Every phase can be ended early with a button. In the Garage the player has 3 test charges per day; clicking an Untested trunk item spends one and reveals works or dead. Unsold trunk items carry into the next day; the seller table is thrown away and re-rolled each day. A one-second banner announces each phase, and the timer turns red in the last 10 seconds with a buzzer at zero. The run is 5 days. At the end of Market a held item snaps back and the bought-this-phase flag is cleared on every trunk item.
+
+### Locked decisions
+
+- **Testing:** limited charges per day (3), unused ones lost. *Rejected:* free unlimited testing; cash-costed testing.
+
+### Routine choices
+
+- **Clocks:** Market 60 s, Sell 45 s, Garage untimed. *Rejected:* all timed; one shared daily clock.
+- **Hand-over:** End phase button on every phase, trunk persists, table re-rolled, banner. *Rejected:* no early end; seller items persisting.
+- All numbers are data.
+
+### Handed to later grills
+
+- **Selling:** Sell-phase mechanics and the buyer's offer formula (Phase 6).
+- **Win/lose:** what happens after the last day (Phase 7).

@@ -16,6 +16,9 @@ class UFlipperItemGenerator;
 class UFlipperWallet;
 class UFlipperTradeRule;
 class UFlipperCashWidget;
+class UFlipperDayLoop;
+class UFlipperDayHud;
+class UFlipperPhaseBanner;
 
 /**
  *  Phase 2.2 test screen: builds a 10x6 trunk and an 8x5 seller table, fills them with hard-coded test items,
@@ -31,6 +34,7 @@ class AFlipperTestPlayerController : public APlayerController
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void PlayerTick(float DeltaTime) override;
 
 private:
 	static constexpr float CellSize = 64.f;
@@ -60,6 +64,15 @@ private:
 	TObjectPtr<UFlipperCashWidget> CashWidget;
 
 	UPROPERTY()
+	TObjectPtr<UFlipperDayLoop> DayLoop;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperDayHud> DayHud;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperPhaseBanner> PhaseBanner;
+
+	UPROPERTY()
 	TObjectPtr<UInventoryGridWidget> TrunkWidget;
 
 	UPROPERTY()
@@ -74,7 +87,7 @@ private:
 	UFlipperItemDefinition* MakeDefinition(const TCHAR* Name, int32 Width, int32 Height);
 	void					FillTestItems();
 
-	/** Loads the item definition data assets from /Game/Flipper/Items and rolls the trunk and seller table with the generator. False if none are found. */
+	/** Loads the item definition data assets from /Game/Flipper/Items and sets up the generator. False if none are found. The day loop rolls the seller table. */
 	bool FillRolledItems();
 
 	void OnRotatePressed();

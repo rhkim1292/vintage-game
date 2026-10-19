@@ -48,6 +48,11 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 			return;
 		}
 
+		if (PickupIntercept && PickupIntercept(Grid, Cell))
+		{
+			return;
+		}
+
 		HeldItem = PlacedItemPtr->Item;
 		bHolding = true;
 		OriginGrid = Grid;

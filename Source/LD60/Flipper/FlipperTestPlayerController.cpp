@@ -5,6 +5,8 @@
 #include "Engine/ObjectLibrary.h"
 #include "FlipperItemGenerator.h"
 #include "FlipperCashWidget.h"
+#include "FlipperDayHud.h"
+#include "FlipperDayLoop.h"
 #include "FlipperTradeRule.h"
 #include "FlipperWallet.h"
 #include "Framework/Application/SlateApplication.h"
@@ -63,11 +65,38 @@ void AFlipperTestPlayerController::BeginPlay()
 	CashWidget->Setup(Wallet);
 	CashWidget->AddToViewport(12);
 
+	// The day loop (Docs/FlipperSpec.md, Feature 4): Market, Garage, Sell for each day. It rolls the seller table itself.
+	DayLoop = NewObject<UFlipperDayLoop>(this);
+	DayLoop->Init(FFlipperDayConfig(), Trunk, SellerTable, Generator, HeldItemController, TradeRule, FMath::Rand());
+	DayLoop->Bind(HeldItemController);
+
+	DayHud = CreateWidget<UFlipperDayHud>(this);
+	DayHud->Setup(DayLoop);
+	DayHud->AddToViewport(12);
+	DayHud->SetDesiredSizeInViewport(FVector2D(UFlipperDayHud::PanelWidth, UFlipperDayHud::PanelHeight));
+	DayHud->SetPositionInViewport(FVector2D(40.f + 10 * CellSize + 60.f, 14.f), false);
+
+	PhaseBanner = CreateWidget<UFlipperPhaseBanner>(this);
+	PhaseBanner->Setup(DayLoop);
+	PhaseBanner->AddToViewport(13);
+
+	DayLoop->StartRun();
+
 	bShowMouseCursor = true;
 	FInputModeGameAndUI InputMode;
 	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+}
+
+void AFlipperTestPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+	if (DayLoop)
+	{
+		DayLoop->Tick(DeltaTime);
+	}
 }
 
 void AFlipperTestPlayerController::SetupInputComponent()
@@ -135,11 +164,7 @@ bool AFlipperTestPlayerController::FillRolledItems()
 	Generator = NewObject<UFlipperItemGenerator>(this);
 	Generator->Init(Definitions, FFlipperGenerationConfig());
 
-	FRandomStream Random;
-	Random.GenerateNewSeed();
-
-	// A full day's seller table. The trunk starts empty: everything in it has to be bought.
-	Generator->FillSellerTable(SellerTable, Random);
+	// The trunk starts empty (everything in it has to be bought) and the day loop rolls each day's seller table.
 	return true;
 }
 

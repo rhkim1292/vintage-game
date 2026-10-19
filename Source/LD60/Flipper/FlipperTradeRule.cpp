@@ -35,6 +35,11 @@ bool UFlipperTradeRule::CanTransfer(const UInventoryGrid* From, const UInventory
 {
 	// Table to Trunk needs Wallet->CanAfford(Item.AskPrice); Trunk to Table needs Item.bBoughtThisPhase;
 	// every other pair is allowed.
+	if (!bOpen && From != To)
+	{
+		return false;
+	}
+
 	if (From == Table && To == Trunk)
 	{
 		return Wallet && Wallet->CanAfford(Item.AskPrice);

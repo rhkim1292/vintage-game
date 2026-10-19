@@ -27,8 +27,8 @@ namespace FlipperPaint
 		Box(Elements, Layer, Geo, FVector2D(Pos.X + Size.X - Thickness, Pos.Y), FVector2D(Thickness, Size.Y), Color);
 	}
 
-	inline void Label(FSlateWindowElementList& Elements, int32 Layer, const FGeometry& Geo, FVector2D Pos, const FString& Text, const FLinearColor& Color)
+	inline void Label(FSlateWindowElementList& Elements, int32 Layer, const FGeometry& Geo, FVector2D Pos, const FString& Text, const FLinearColor& Color, int32 FontSize = 12)
 	{
-		FSlateDrawElement::MakeText(Elements, Layer, Geo.ToPaintGeometry(FVector2f(400.f, 24.f), FSlateLayoutTransform(FVector2f(Pos))), Text, FCoreStyle::GetDefaultFontStyle("Regular", 12), ESlateDrawEffect::None, Color);
+		FSlateDrawElement::MakeText(Elements, Layer, Geo.ToPaintGeometry(FVector2f(400.f, 24.f), FSlateLayoutTransform(FVector2f(Pos))), Text, FCoreStyle::GetDefaultFontStyle("Regular", FontSize), ESlateDrawEffect::None, Color);
 	}
 } // namespace FlipperPaint
