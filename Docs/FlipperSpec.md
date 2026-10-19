@@ -2,7 +2,7 @@
 
 Flipper is a Ludum Dare 60 entry (theme: "old tech"), built in this UE5 C++ project. You play a reseller of vintage electronics with rent due in 7 days. Each day you buy randomly rolled old tech at a flea market (Diablo-style rarity, condition and traits, some items Untested), pack it into your car trunk, test items in the garage, and sell to collectors.
 
-This file is the spec. Each feature gets a section once its design interview is done, and later sections build on earlier ones. Features not yet specced: item data, item generation, pricing, the day loop, collectors, win/lose and difficulty, presentation.
+This file is the spec. Each feature gets a section once its design interview is done, and later sections build on earlier ones. Features not yet specced: pricing, the day loop, collectors, win/lose and difficulty, presentation.
 
 ---
 
@@ -108,3 +108,27 @@ These are hard to reverse, would surprise someone without context, and involved 
 ### Open threads
 
 None. Every discussion in this grill ended in a decision.
+
+---
+
+## Feature 2: Item data and generation (jam scope)
+
+Full write-up: `Docs/FlipperItemData-design.md`. Items are rolled copies of 6 item definitions (data assets). Each has a rarity rolled per item (Common grey ~70%, Uncommon blue ~25%, Rare gold ~5%) and a hidden works/dead flag. The seller table mixes Tested items (known working, priced higher) with Untested ones (about 60% of the table; about 65% of those work, 35% are dead). The generator rolls a fixed 8 items a day onto the 8x5 seller table with `FindFirstFit`, taking a random seed so tests are deterministic.
+
+### Locked decisions
+
+- **Rarity:** 3 tiers, rolled per item, weights and price multipliers in data. *Rejected:* 4 tiers (an extra tier nobody sees in 5 days), rarity fixed per item type (turns rarity into a lookup).
+- **Untested gamble:** a mixed table, Tested (known working) or Untested (hidden). A dead item is never labelled on the table. *Rejected:* everything Untested (no choice), a "Tested Dead" scrap label (a scrap sub-economy the jam can't afford).
+
+### Routine choices
+
+- **Starter items:** Floppy Disk 1x1 $6, Game Boy 1x2 $35, Polaroid Camera 2x2 $45, Rotary Phone 2x2 $55, Typewriter 3x2 $70, CRT Television 4x3 $120 (base value = a Common working copy).
+- **Daily table:** 8 items, equal chance per definition, rarity and Tested/Untested rolled per item, re-roll once if it doesn't fit then skip; the same odds every day.
+- **Tooltip:** name, footprint, rarity (coloured), status line ("Tested: works" / "Untested", then "WORKS"/"DEAD" after a Garage test). Price is added by the pricing grill; base value is not shown.
+- **On the grid:** border colour = rarity, "?" on Untested items, a red "X" on dead items after testing.
+
+### Handed to later grills
+
+- **Pricing:** the rarity multipliers, the Tested price premium and the base-value formula.
+- **Day loop:** the Garage test action that flips Untested to Tested.
+- **Post-jam:** odds shifting across days, traits, condition, lots (see `Docs/FlipperPlan-Full.md`).
