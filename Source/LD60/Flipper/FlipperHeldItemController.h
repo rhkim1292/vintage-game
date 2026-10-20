@@ -55,8 +55,9 @@ public:
 	const FFlipperPlacement& GetOriginPlacement() const { return OriginPlacement; }
 
 	/**
-	 *  Which cell of the held footprint is under the cursor, relative to the footprint's top-left.
-	 *  (0,0) = the cursor is over the top-left cell. Always in the footprint's current rotation.
+	 *  Which cell of the held footprint is under the cursor, relative to the footprint's top-left. The held item is
+	 *  always centred on the cursor, wherever it was clicked, so this is the footprint's centre cell (GetCentreCell),
+	 *  in the footprint's current rotation.
 	 */
 	FIntPoint GetGrabOffset() const { return GrabOffset; }
 
@@ -64,6 +65,9 @@ public:
 
 	/** Footprint of the held item in its current rotation, or (0,0) when nothing is held. */
 	FIntPoint GetHeldFootprint() const;
+
+	/** The cell of a footprint that sits under the cursor while it is held: its middle cell, the one after the middle line on an even side. */
+	static FIntPoint GetCentreCell(FIntPoint Footprint);
 
 	/** Unbound = every cross-grid move is allowed. */
 	FFlipperTransferApprover TransferApprover;
@@ -113,9 +117,8 @@ public:
 	void PointerUp(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos);
 
 	/**
-	 *  Toggle rotation of the held item (R or right-click). Also turns the grab offset a quarter turn clockwise so the
-	 *  cell under the cursor stays under the cursor: offset (x, y) in a W x H footprint becomes (H-1-y, x) in the new
-	 *  H x W footprint. Nothing held: does nothing.
+	 *  Toggle rotation of the held item (R or right-click). The grab offset becomes the centre cell of the new
+	 *  footprint, so the item stays centred on the cursor. Nothing held: does nothing.
 	 */
 	void Rotate();
 

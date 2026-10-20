@@ -69,7 +69,7 @@ int32 UFlipperEndScreen::NativePaint(const FPaintArgs& Args, const FGeometry& Al
 	FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, Pos + FVector2D(150.f, 140.f), FString::Printf(TEXT("Rent:  $%d"), DayLoop->GetRent()), Dim, 18);
 	FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, Pos + FVector2D(150.f, 172.f), FString::Printf(TEXT("Days played:  %d"), DayLoop->GetDay()), Dim, 18);
 
-	const FVector2D LocalCursor = AllottedGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
+	const FVector2D LocalCursor = FlipperPaint::CursorLocal(Args, AllottedGeometry);
 	const FVector2D ButtonPos = GetButtonPos(ScreenSize);
 	const bool		bHover = IsInsideRect(LocalCursor, ButtonPos, GetButtonSize());
 	FlipperPaint::Box(OutDrawElements, LayerId + 2, AllottedGeometry, ButtonPos, GetButtonSize(), bHover ? FLinearColor(0.25f, 0.25f, 0.3f, 1.f) : FLinearColor(0.12f, 0.12f, 0.15f, 1.f));

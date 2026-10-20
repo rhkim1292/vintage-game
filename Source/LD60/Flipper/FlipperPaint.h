@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Layout/Geometry.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
+#include "Types/PaintArgs.h"
 
 /**
  *  Tiny drawing helpers shared by the Flipper widgets (grid, held-item overlay, tooltip), which all paint
@@ -13,6 +15,18 @@
  */
 namespace FlipperPaint
 {
+	/**
+	 *  The mouse cursor in the local space of the widget being painted. The cursor (and a widget's cached geometry) are in
+	 *  desktop space, but the geometry NativePaint receives is in window space, so the window's offset on the desktop has
+	 *  to come off first. Without it, anything drawn at the cursor lands off by the window's position (a PIE window inside
+	 *  the editor is the obvious case).
+	 */
+	inline FVector2D CursorLocal(const FPaintArgs& Args, const FGeometry& Geo)
+	{
+		const FVector2D WindowOffset = FVector2D(FVector2f(Args.GetWindowToDesktopTransform()));
+		return Geo.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos() - WindowOffset);
+	}
+
 	inline void Box(FSlateWindowElementList& Elements, int32 Layer, const FGeometry& Geo, FVector2D Pos, FVector2D Size, const FLinearColor& Color)
 	{
 		FSlateDrawElement::MakeBox(Elements, Layer, Geo.ToPaintGeometry(FVector2f(Size), FSlateLayoutTransform(FVector2f(Pos))), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, Color);

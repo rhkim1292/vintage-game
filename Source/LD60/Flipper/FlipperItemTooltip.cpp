@@ -43,7 +43,7 @@ int32 UFlipperItemTooltip::NativePaint(const FPaintArgs& Args, const FGeometry& 
 	}
 
 	const UFlipperItemDefinition* Definition = Placed->Item.Definition;
-	const FVector2D				  Pos = AllottedGeometry.AbsoluteToLocal(AbsoluteCursor) + FVector2D(16.f, 16.f);
+	const FVector2D				  Pos = FlipperPaint::CursorLocal(Args, AllottedGeometry) + FVector2D(16.f, 16.f);
 	// While selling is open, a trunk item also shows what the buyer would pay for it today (Docs/FlipperSpec.md, Feature 5).
 	// (The counter never holds anything, because a sold item is used up, so any item under the cursor is a trunk item.)
 	const bool		bShowOffer = TradeRule && TradeRule->IsSellOpen();

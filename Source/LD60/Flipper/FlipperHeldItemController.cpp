@@ -13,6 +13,12 @@ FIntPoint UFlipperHeldItemController::GetHeldFootprint() const
 	return UInventoryGrid::GetFootprint(HeldItem.Definition, IsHeldRotated());
 }
 
+FIntPoint UFlipperHeldItemController::GetCentreCell(FIntPoint Footprint)
+{
+	// An even side has no single middle cell: take the one after the middle line (a 2-wide footprint gives 1).
+	return FIntPoint(Footprint.X / 2, Footprint.Y / 2);
+}
+
 void UFlipperHeldItemController::Init(float InDragThresholdPixels)
 {
 	bHolding = false;
@@ -57,8 +63,8 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 		bHolding = true;
 		OriginGrid = Grid;
 		OriginPlacement = PlacedItemPtr->Placement;
-		GrabOffset = FIntPoint(Cell.X - PlacedItemPtr->Placement.Origin.X, Cell.Y - PlacedItemPtr->Placement.Origin.Y);
 		bHeldRotated = PlacedItemPtr->Placement.bRotated;
+		GrabOffset = GetCentreCell(GetHeldFootprint());
 		Grid->Remove(HeldItem);
 		PressScreenPos = ScreenPos;
 		bDragged = false;
@@ -91,9 +97,8 @@ void UFlipperHeldItemController::Rotate()
 	{
 		return;
 	}
-	FIntPoint HeldItemFootprint = GetHeldFootprint();
 	bHeldRotated = !bHeldRotated;
-	GrabOffset = FIntPoint(HeldItemFootprint.Y - 1 - GrabOffset.Y, GrabOffset.X);
+	GrabOffset = GetCentreCell(GetHeldFootprint());
 	OnChanged.Broadcast();
 }
 

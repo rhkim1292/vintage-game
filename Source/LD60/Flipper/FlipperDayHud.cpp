@@ -156,7 +156,7 @@ int32 UFlipperDayHud::NativePaint(const FPaintArgs& Args, const FGeometry& Allot
 
 	if (Phase != EFlipperPhase::Finished)
 	{
-		const FVector2D LocalCursor = AllottedGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
+		const FVector2D LocalCursor = FlipperPaint::CursorLocal(Args, AllottedGeometry);
 		const bool		bHover = IsInside(LocalCursor, GetButtonPos(), GetButtonSize());
 		FlipperPaint::Box(OutDrawElements, LayerId + 1, AllottedGeometry, GetButtonPos(), GetButtonSize(), bHover ? FLinearColor(0.25f, 0.25f, 0.3f, 1.f) : FLinearColor(0.12f, 0.12f, 0.15f, 1.f));
 		FlipperPaint::Outline(OutDrawElements, LayerId + 2, AllottedGeometry, GetButtonPos(), GetButtonSize(), 1.f, PhaseColor);

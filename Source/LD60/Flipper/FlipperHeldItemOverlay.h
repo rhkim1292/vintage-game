@@ -9,8 +9,7 @@
 class UFlipperHeldItemController;
 
 /**
- *  Full-screen, click-through widget that draws the held item at the cursor (the footprint's grabbed cell sits under
- *  the cursor). Add it to the viewport above the grid widgets.
+ *  Full-screen, click-through widget that draws the held item centred on the cursor. Add it to the viewport above the grid widgets.
  */
 UCLASS()
 class UFlipperHeldItemOverlay : public UUserWidget

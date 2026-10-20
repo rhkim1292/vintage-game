@@ -26,13 +26,12 @@ int32 UFlipperHeldItemOverlay::NativePaint(const FPaintArgs& Args, const FGeomet
 		return LayerId;
 	}
 
-	const FVector2D CursorLocal = AllottedGeometry.AbsoluteToLocal(FSlateApplication::Get().GetCursorPos());
+	const FVector2D CursorPos = FlipperPaint::CursorLocal(Args, AllottedGeometry);
 	const FIntPoint Footprint = Controller->GetHeldFootprint();
-	const FIntPoint Grab = Controller->GetGrabOffset();
-
-	// Centre the grabbed cell on the cursor.
-	const FVector2D Pos = CursorLocal - FVector2D((Grab.X + 0.5f) * CellSize, (Grab.Y + 0.5f) * CellSize);
 	const FVector2D Size = FVector2D(Footprint.X * CellSize, Footprint.Y * CellSize);
+
+	// Centre the whole item on the cursor. The ghost uses the footprint's centre cell as the grab offset, so the two agree to within half a cell.
+	const FVector2D Pos = CursorPos - Size / 2;
 	const uint8		Hue = static_cast<uint8>(GetTypeHash(Controller->GetHeldItem().Definition->GetFName()) % 256);
 
 	FlipperPaint::Box(OutDrawElements, LayerId, AllottedGeometry, Pos, Size, FLinearColor::MakeFromHSV8(Hue, 140, 220) * FLinearColor(1.f, 1.f, 1.f, 0.8f));
