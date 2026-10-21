@@ -71,6 +71,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	DayLoop->Init(FFlipperDayConfig(), Trunk, SellerTable, Generator, HeldItemController, TradeRule, FMath::Rand());
 	DayLoop->Bind(HeldItemController);
 	DayLoop->SetWallet(Wallet);
+	DayLoop->OnPhaseChanged.AddUObject(this, &AFlipperTestPlayerController::OnPhaseChanged);
 
 	DayHud = CreateWidget<UFlipperDayHud>(this);
 	DayHud->Setup(DayLoop);
@@ -173,6 +174,15 @@ bool AFlipperTestPlayerController::FillRolledItems()
 
 	// The trunk starts empty (everything in it has to be bought) and the day loop rolls each day's seller table.
 	return true;
+}
+
+void AFlipperTestPlayerController::OnPhaseChanged(EFlipperPhase NewPhase, int32 Day)
+{
+	if (SellerTableWidget)
+	{
+		// Collapsed, not just invisible: the grid widget then takes no clicks, hovers or drops either.
+		SellerTableWidget->SetVisibility(NewPhase == EFlipperPhase::Garage ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
 }
 
 void AFlipperTestPlayerController::OnRotatePressed()

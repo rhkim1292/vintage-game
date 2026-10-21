@@ -23,7 +23,8 @@ FVector2D UInventoryGridWidget::GetPixelSize() const
 
 bool UInventoryGridWidget::ScreenToCellPos(FVector2D AbsolutePos, FVector2D& OutCellPos) const
 {
-	if (!Grid)
+	// A hidden grid keeps its last cached geometry, so without this check it would still answer for the spot it used to cover.
+	if (!Grid || !IsVisible())
 	{
 		return false;
 	}

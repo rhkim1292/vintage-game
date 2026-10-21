@@ -20,6 +20,7 @@ class UFlipperDayLoop;
 class UFlipperDayHud;
 class UFlipperPhaseBanner;
 class UFlipperEndScreen;
+enum class EFlipperPhase : uint8;
 
 /**
  *  Phase 2.2 test screen: builds a 10x6 trunk and an 8x5 seller table, fills them with hard-coded test items,
@@ -97,6 +98,9 @@ private:
 
 	/** Loads the item definition data assets from /Game/Flipper/Items and sets up the generator. False if none are found. The day loop rolls the seller table. */
 	bool FillRolledItems();
+
+	/** The seller's table has nothing to offer in the Garage (no buying, and the day's leftovers are about to be thrown away), so its grid is hidden then. */
+	void OnPhaseChanged(EFlipperPhase NewPhase, int32 Day);
 
 	void OnRotatePressed();
 	void OnCancelPressed();

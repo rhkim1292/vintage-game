@@ -160,7 +160,7 @@ Full write-up: `Docs/FlipperPricing-design.md`. Value = base value x rarity mult
 
 ## Feature 4: Day loop (jam scope)
 
-Full write-up: `Docs/FlipperDayLoop-design.md`. A day is Market (timed, 60 s), then Garage (no clock, ends with a Done button), then Sell (timed, 45 s). Every phase can be ended early with a button. In the Garage the player has 3 test charges per day; clicking an Untested trunk item spends one and reveals works or dead. Unsold trunk items carry into the next day; the seller table is thrown away and re-rolled each day. A one-second banner announces each phase, and the timer turns red in the last 10 seconds with a buzzer at zero. The run is 5 days. At the end of Market a held item snaps back and the bought-this-phase flag is cleared on every trunk item.
+Full write-up: `Docs/FlipperDayLoop-design.md`. A day is Market (timed, 60 s), then Garage (no clock, ends with a Done button), then Sell (timed, 45 s). Every phase can be ended early with a button. In the Garage the player has 3 test charges per day; clicking an Untested trunk item spends one and reveals works or dead. Unsold trunk items carry into the next day; the seller table is thrown away and re-rolled each day. In the Garage the seller table's grid is hidden (changed 2026-10-21, after the deadline): there is nothing to do with it then, so the screen is just the trunk; a hidden grid takes no clicks, hovers or drops. A one-second banner announces each phase, and the timer turns red in the last 10 seconds with a buzzer at zero. The run is 5 days. At the end of Market a held item snaps back and the bought-this-phase flag is cleared on every trunk item.
 
 ### Locked decisions
 

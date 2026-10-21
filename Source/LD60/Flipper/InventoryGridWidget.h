@@ -40,7 +40,7 @@ public:
 	/**
 	 *  Like ScreenToCell, but keeps where inside the cell the position is: OutCellPos is in fractional cell units
 	 *  ((2.5, 1.5) is the middle of cell (2,1)). This is what the held-item controller wants for the ghost and the drop.
-	 *  Returns false when AbsolutePos is outside the grid.
+	 *  Returns false when AbsolutePos is outside the grid, or the widget is hidden.
 	 */
 	bool ScreenToCellPos(FVector2D AbsolutePos, FVector2D& OutCellPos) const;
 
