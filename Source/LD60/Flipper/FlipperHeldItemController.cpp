@@ -13,10 +13,12 @@ FIntPoint UFlipperHeldItemController::GetHeldFootprint() const
 	return UInventoryGrid::GetFootprint(HeldItem.Definition, IsHeldRotated());
 }
 
-FIntPoint UFlipperHeldItemController::GetCentreCell(FIntPoint Footprint)
+FIntPoint UFlipperHeldItemController::GetDropOrigin(FVector2D CellPos) const
 {
-	// An even side has no single middle cell: take the one after the middle line (a 2-wide footprint gives 1).
-	return FIntPoint(Footprint.X / 2, Footprint.Y / 2);
+	// The picture is centred on the pointer, so its top-left corner is half the footprint up and left of it.
+	// Rounding (not flooring) picks the nearest cell, which is what makes an even side flip once the pointer passes the middle of a cell.
+	const FIntPoint Footprint = GetHeldFootprint();
+	return FIntPoint(FMath::RoundToInt32(CellPos.X - Footprint.X * 0.5), FMath::RoundToInt32(CellPos.Y - Footprint.Y * 0.5));
 }
 
 void UFlipperHeldItemController::Init(float InDragThresholdPixels)
@@ -25,14 +27,13 @@ void UFlipperHeldItemController::Init(float InDragThresholdPixels)
 	HeldItem = {};
 	OriginGrid = nullptr;
 	OriginPlacement = {};
-	GrabOffset = FIntPoint::ZeroValue;
 	bHeldRotated = false;
 	DragThresholdPixels = InDragThresholdPixels;
 	PressScreenPos = FVector2D::ZeroVector;
 	bDragged = false;
 }
 
-void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos)
+void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FVector2D CellPos, FVector2D ScreenPos)
 {
 	if (!Grid)
 	{
@@ -47,6 +48,7 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 
 	if (!IsHolding())
 	{
+		const FIntPoint			  Cell(FMath::FloorToInt32(CellPos.X), FMath::FloorToInt32(CellPos.Y));
 		const FFlipperPlacedItem* PlacedItemPtr = Grid->FindItemAt(Cell);
 
 		if (!PlacedItemPtr)
@@ -64,7 +66,6 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 		OriginGrid = Grid;
 		OriginPlacement = PlacedItemPtr->Placement;
 		bHeldRotated = PlacedItemPtr->Placement.bRotated;
-		GrabOffset = GetCentreCell(GetHeldFootprint());
 		Grid->Remove(HeldItem);
 		PressScreenPos = ScreenPos;
 		bDragged = false;
@@ -72,7 +73,7 @@ void UFlipperHeldItemController::PointerDown(UInventoryGrid* Grid, FIntPoint Cel
 		return;
 	}
 
-	DropHeldItem(Grid, Cell);
+	DropHeldItem(Grid, CellPos);
 }
 
 void UFlipperHeldItemController::PointerMove(FVector2D ScreenPos)
@@ -83,11 +84,11 @@ void UFlipperHeldItemController::PointerMove(FVector2D ScreenPos)
 	}
 }
 
-void UFlipperHeldItemController::PointerUp(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos)
+void UFlipperHeldItemController::PointerUp(UInventoryGrid* Grid, FVector2D CellPos, FVector2D ScreenPos)
 {
 	if (IsHolding() && bDragged)
 	{
-		DropHeldItem(Grid, Cell);
+		DropHeldItem(Grid, CellPos);
 	}
 }
 
@@ -98,7 +99,6 @@ void UFlipperHeldItemController::Rotate()
 		return;
 	}
 	bHeldRotated = !bHeldRotated;
-	GrabOffset = GetCentreCell(GetHeldFootprint());
 	OnChanged.Broadcast();
 }
 
@@ -107,7 +107,7 @@ void UFlipperHeldItemController::Cancel()
 	SnapBackHeldItem();
 }
 
-bool UFlipperHeldItemController::GetGhost(const UInventoryGrid* Grid, FIntPoint HoveredCell, FIntPoint& OutOrigin, bool& bOutValid) const
+bool UFlipperHeldItemController::GetGhost(const UInventoryGrid* Grid, FVector2D CellPos, FIntPoint& OutOrigin, bool& bOutValid) const
 {
 	if (!IsHolding() || !Grid)
 	{
@@ -115,7 +115,7 @@ bool UFlipperHeldItemController::GetGhost(const UInventoryGrid* Grid, FIntPoint 
 	}
 
 	const bool bApproved = Grid == OriginGrid || !TransferApprover || TransferApprover(OriginGrid, Grid, HeldItem);
-	OutOrigin = HoveredCell - GrabOffset;
+	OutOrigin = GetDropOrigin(CellPos);
 	bOutValid = bApproved && Grid->CanPlace(HeldItem, OutOrigin, bHeldRotated);
 	return true;
 }
@@ -181,7 +181,7 @@ void UFlipperHeldItemController::SnapBackHeldItem()
 	OnChanged.Broadcast();
 }
 
-void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FIntPoint Cell)
+void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FVector2D CellPos)
 {
 	if (!Grid)
 	{
@@ -194,7 +194,7 @@ void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FIntPoint Ce
 		return;
 	}
 
-	FIntPoint DropOrigin = FIntPoint(Cell.X - GrabOffset.X, Cell.Y - GrabOffset.Y);
+	const FIntPoint DropOrigin = GetDropOrigin(CellPos);
 	if (!Grid->CanPlace(HeldItem, DropOrigin, bHeldRotated))
 	{
 		SnapBackHeldItem();

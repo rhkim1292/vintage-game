@@ -11,12 +11,15 @@
 	#include "UObject/StrongObjectPtr.h"
 	#include "FlipperDayLoop.h"
 	#include "FlipperHeldItemController.h"
+	#include "FlipperTestHelpers.h"
 	#include "FlipperItemDefinition.h"
 	#include "FlipperItemGenerator.h"
 	#include "FlipperPricing.h"
 	#include "FlipperTradeRule.h"
 	#include "FlipperWallet.h"
 	#include "InventoryGrid.h"
+
+using namespace FlipperTestHelpers;
 
 namespace FlipperSellingTests
 {
@@ -79,9 +82,9 @@ namespace FlipperSellingTests
 
 		void Drag(UInventoryGrid* FromGrid, FIntPoint FromCell, UInventoryGrid* ToGrid, FIntPoint ToCell)
 		{
-			Controller->PointerDown(FromGrid, FromCell, FVector2D(0.0, 0.0));
+			Controller->PointerDown(FromGrid, CellCentre(FromCell), FVector2D(0.0, 0.0));
 			Controller->PointerMove(FVector2D(50.0, 0.0));
-			Controller->PointerUp(ToGrid, ToCell, FVector2D(50.0, 0.0));
+			Controller->PointerUp(ToGrid, CellCentre(ToCell), FVector2D(50.0, 0.0));
 		}
 	};
 
@@ -130,9 +133,9 @@ namespace FlipperSellingTests
 
 		void Drag(UInventoryGrid* FromGrid, FIntPoint FromCell, UInventoryGrid* ToGrid, FIntPoint ToCell)
 		{
-			Controller->PointerDown(FromGrid, FromCell, FVector2D(0.0, 0.0));
+			Controller->PointerDown(FromGrid, CellCentre(FromCell), FVector2D(0.0, 0.0));
 			Controller->PointerMove(FVector2D(50.0, 0.0));
-			Controller->PointerUp(ToGrid, ToCell, FVector2D(50.0, 0.0));
+			Controller->PointerUp(ToGrid, CellCentre(ToCell), FVector2D(50.0, 0.0));
 		}
 	};
 } // namespace FlipperSellingTests
@@ -244,15 +247,15 @@ bool FFlipperSellGhostTest::RunTest(const FString& Parameters)
 	FSellFixture F;
 	F.PlaceItem(F.Trunk.Get(), FIntPoint(0, 0), true, true);
 
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	FIntPoint Origin;
 	bool	  bValid = false;
-	TestTrue(TEXT("a ghost is shown over the counter"), F.Controller->GetGhost(F.Table.Get(), FIntPoint(3, 3), Origin, bValid));
+	TestTrue(TEXT("a ghost is shown over the counter"), F.Controller->GetGhost(F.Table.Get(), CellCentre(3, 3), Origin, bValid));
 	TestTrue(TEXT("and it is valid: the sale is allowed"), bValid);
 
 	// Dropping outside the counter is the usual invalid drop: the item snaps back, nothing is sold.
 	F.Controller->PointerMove(FVector2D(50.0, 0.0));
-	F.Controller->PointerUp(nullptr, FIntPoint::ZeroValue, FVector2D(50.0, 0.0));
+	F.Controller->PointerUp(nullptr, FVector2D::ZeroVector, FVector2D(50.0, 0.0));
 	TestNotNull(TEXT("the item is back in the trunk"), F.Trunk->FindItemAt(FIntPoint(0, 0)));
 	TestEqual(TEXT("and no money moved"), F.Wallet->GetCash(), 100);
 	return true;
@@ -375,7 +378,7 @@ bool FFlipperSellWholeDayTest::RunTest(const FString& Parameters)
 		F.Loop->EndPhase();
 		if (!F.Trunk->FindItemAt(FIntPoint(0, 0))->Item.bTested)
 		{
-			F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+			F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 			TestTrue(TEXT("tested in the Garage"), F.Trunk->FindItemAt(FIntPoint(0, 0))->Item.bTested);
 		}
 

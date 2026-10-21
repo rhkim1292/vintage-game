@@ -21,7 +21,7 @@ FVector2D UInventoryGridWidget::GetPixelSize() const
 	return Grid ? FVector2D(Grid->GetWidth() * CellSize, Grid->GetHeight() * CellSize) : FVector2D::ZeroVector;
 }
 
-bool UInventoryGridWidget::ScreenToCell(FVector2D AbsolutePos, FIntPoint& OutCell) const
+bool UInventoryGridWidget::ScreenToCellPos(FVector2D AbsolutePos, FVector2D& OutCellPos) const
 {
 	if (!Grid)
 	{
@@ -29,16 +29,26 @@ bool UInventoryGridWidget::ScreenToCell(FVector2D AbsolutePos, FIntPoint& OutCel
 	}
 
 	const FGeometry IGWFGeometry = GetCachedGeometry();
-	FVector2D		LocalPos = IGWFGeometry.AbsoluteToLocal(AbsolutePos);
-	int32			CellXPos = FMath::FloorToInt32(LocalPos.X / CellSize);
-	int32			CellYPos = FMath::FloorToInt32(LocalPos.Y / CellSize);
+	const FVector2D CellPos = IGWFGeometry.AbsoluteToLocal(AbsolutePos) / CellSize;
 
-	if (CellXPos < 0 || CellXPos > Grid->GetWidth() - 1 || CellYPos < 0 || CellYPos > Grid->GetHeight() - 1)
+	if (CellPos.X < 0.0 || CellPos.X >= Grid->GetWidth() || CellPos.Y < 0.0 || CellPos.Y >= Grid->GetHeight())
 	{
 		return false;
 	}
 
-	OutCell = FIntPoint(CellXPos, CellYPos);
+	OutCellPos = CellPos;
+	return true;
+}
+
+bool UInventoryGridWidget::ScreenToCell(FVector2D AbsolutePos, FIntPoint& OutCell) const
+{
+	FVector2D CellPos;
+	if (!ScreenToCellPos(AbsolutePos, CellPos))
+	{
+		return false;
+	}
+
+	OutCell = FIntPoint(FMath::FloorToInt32(CellPos.X), FMath::FloorToInt32(CellPos.Y));
 	return true;
 }
 
@@ -130,10 +140,10 @@ int32 UInventoryGridWidget::NativePaint(const FPaintArgs& Args, const FGeometry&
 	// Ghost: only on the grid the cursor is over, only while something is held
 	if (Controller && Controller->IsHolding())
 	{
-		FIntPoint HoveredCell;
+		FVector2D HoveredCellPos;
 		FIntPoint GhostOrigin;
 		bool	  bGhostValid = false;
-		if (ScreenToCell(FSlateApplication::Get().GetCursorPos(), HoveredCell) && Controller->GetGhost(Grid, HoveredCell, GhostOrigin, bGhostValid))
+		if (ScreenToCellPos(FSlateApplication::Get().GetCursorPos(), HoveredCellPos) && Controller->GetGhost(Grid, HoveredCellPos, GhostOrigin, bGhostValid))
 		{
 			const FIntPoint Footprint = Controller->GetHeldFootprint();
 			FlipperPaint::Box(OutDrawElements, LayerId + 3, AllottedGeometry, FVector2D(GhostOrigin.X * CellSize, GhostOrigin.Y * CellSize), FVector2D(Footprint.X * CellSize, Footprint.Y * CellSize), GetGhostColor(bGhostValid));
@@ -162,11 +172,12 @@ FReply UInventoryGridWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 	}
 
 	const FVector2D AbsolutePos = InMouseEvent.GetScreenSpacePosition();
-	FIntPoint		Cell;
-	if (!ScreenToCell(AbsolutePos, Cell))
+	FVector2D		CellPos;
+	if (!ScreenToCellPos(AbsolutePos, CellPos))
 	{
 		return FReply::Unhandled();
 	}
+	const FIntPoint Cell(FMath::FloorToInt32(CellPos.X), FMath::FloorToInt32(CellPos.Y));
 
 	if (InMouseEvent.IsShiftDown() && !Controller->IsHolding())
 	{
@@ -177,7 +188,7 @@ FReply UInventoryGridWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
 		return FReply::Handled();
 	}
 
-	Controller->PointerDown(Grid, Cell, AbsolutePos);
+	Controller->PointerDown(Grid, CellPos, AbsolutePos);
 
 	// Capture only after a pick-up, so the release of a drag reaches us wherever the cursor ends up.
 	FReply Reply = FReply::Handled();
@@ -198,8 +209,13 @@ FReply UInventoryGridWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, 
 	// The release may be over a different grid, or over none: resolve it through the registry.
 	const FVector2D		  AbsolutePos = InMouseEvent.GetScreenSpacePosition();
 	FIntPoint			  Cell = FIntPoint::ZeroValue;
+	FVector2D			  CellPos = FVector2D::ZeroVector;
 	UInventoryGridWidget* Target = FindWidgetAt(AbsolutePos, Cell);
-	Controller->PointerUp(Target ? Target->GetGrid() : nullptr, Cell, AbsolutePos);
+	if (Target)
+	{
+		Target->ScreenToCellPos(AbsolutePos, CellPos);
+	}
+	Controller->PointerUp(Target ? Target->GetGrid() : nullptr, CellPos, AbsolutePos);
 
 	return FReply::Handled().ReleaseMouseCapture();
 }

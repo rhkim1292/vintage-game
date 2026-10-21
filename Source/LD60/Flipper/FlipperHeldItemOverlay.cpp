@@ -30,7 +30,7 @@ int32 UFlipperHeldItemOverlay::NativePaint(const FPaintArgs& Args, const FGeomet
 	const FIntPoint Footprint = Controller->GetHeldFootprint();
 	const FVector2D Size = FVector2D(Footprint.X * CellSize, Footprint.Y * CellSize);
 
-	// Centre the whole item on the cursor. The ghost uses the footprint's centre cell as the grab offset, so the two agree to within half a cell.
+	// Centre the whole item on the cursor. The ghost and the drop snap this same picture to the nearest cells (GetDropOrigin), so they agree to within half a cell.
 	const FVector2D Pos = CursorPos - Size / 2;
 	const uint8		Hue = static_cast<uint8>(GetTypeHash(Controller->GetHeldItem().Definition->GetFName()) % 256);
 

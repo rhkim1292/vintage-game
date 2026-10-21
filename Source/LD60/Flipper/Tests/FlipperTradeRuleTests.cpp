@@ -9,10 +9,13 @@
 
 	#include "UObject/StrongObjectPtr.h"
 	#include "FlipperHeldItemController.h"
+	#include "FlipperTestHelpers.h"
 	#include "FlipperItemDefinition.h"
 	#include "FlipperTradeRule.h"
 	#include "FlipperWallet.h"
 	#include "InventoryGrid.h"
+
+using namespace FlipperTestHelpers;
 
 namespace FlipperTradeRuleTests
 {
@@ -64,9 +67,9 @@ namespace FlipperTradeRuleTests
 		/** A press-drag-release from one cell to another. */
 		void Drag(UInventoryGrid* FromGrid, FIntPoint FromCell, UInventoryGrid* ToGrid, FIntPoint ToCell)
 		{
-			Controller->PointerDown(FromGrid, FromCell, FVector2D(0.0, 0.0));
+			Controller->PointerDown(FromGrid, CellCentre(FromCell), FVector2D(0.0, 0.0));
 			Controller->PointerMove(FVector2D(50.0, 0.0));
-			Controller->PointerUp(ToGrid, ToCell, FVector2D(50.0, 0.0));
+			Controller->PointerUp(ToGrid, CellCentre(ToCell), FVector2D(50.0, 0.0));
 		}
 
 		static const FFlipperPlacedItem* At(const UInventoryGrid* Grid, FIntPoint Cell) { return Grid->FindItemAt(Cell); }
@@ -119,13 +122,13 @@ bool FFlipperTradeRefusedWhenShortTest::RunTest(const FString& Parameters)
 	F.PlaceItem(F.Table.Get(), FIntPoint(0, 0), 101);
 
 	// The ghost over the trunk is red while the item is too expensive.
-	F.Controller->PointerDown(F.Table.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Table.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	FIntPoint Origin;
 	bool	  bValid = true;
-	TestTrue(TEXT("a ghost is shown"), F.Controller->GetGhost(F.Trunk.Get(), FIntPoint(1, 1), Origin, bValid));
+	TestTrue(TEXT("a ghost is shown"), F.Controller->GetGhost(F.Trunk.Get(), CellCentre(1, 1), Origin, bValid));
 	TestFalse(TEXT("but it is invalid: not enough cash"), bValid);
 	F.Controller->PointerMove(FVector2D(50.0, 0.0));
-	F.Controller->PointerUp(F.Trunk.Get(), FIntPoint(1, 1), FVector2D(50.0, 0.0));
+	F.Controller->PointerUp(F.Trunk.Get(), CellCentre(1, 1), FVector2D(50.0, 0.0));
 
 	TestNull(TEXT("nothing arrived in the trunk"), F.At(F.Trunk.Get(), FIntPoint(1, 1)));
 	TestNotNull(TEXT("the item snapped back to the table"), F.At(F.Table.Get(), FIntPoint(0, 0)));
@@ -179,13 +182,13 @@ bool FFlipperTradeOldItemTest::RunTest(const FString& Parameters)
 	F.PlaceItem(F.Trunk.Get(), FIntPoint(0, 0), 40, 25, false);
 
 	// The ghost over the table is red.
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	FIntPoint Origin;
 	bool	  bValid = true;
-	TestTrue(TEXT("a ghost is shown"), F.Controller->GetGhost(F.Table.Get(), FIntPoint(2, 2), Origin, bValid));
+	TestTrue(TEXT("a ghost is shown"), F.Controller->GetGhost(F.Table.Get(), CellCentre(2, 2), Origin, bValid));
 	TestFalse(TEXT("but it is invalid: no refund for an old item"), bValid);
 	F.Controller->PointerMove(FVector2D(50.0, 0.0));
-	F.Controller->PointerUp(F.Table.Get(), FIntPoint(2, 2), FVector2D(50.0, 0.0));
+	F.Controller->PointerUp(F.Table.Get(), CellCentre(2, 2), FVector2D(50.0, 0.0));
 
 	TestNotNull(TEXT("the item snapped back to the trunk"), F.At(F.Trunk.Get(), FIntPoint(0, 0)));
 	TestNull(TEXT("and is not on the table"), F.At(F.Table.Get(), FIntPoint(2, 2)));

@@ -198,6 +198,6 @@ void AFlipperTestPlayerController::OnLeftPressed()
 	// while holding, that is an invalid drop and snaps the item back.
 	if (HeldItemController && HeldItemController->IsHolding())
 	{
-		HeldItemController->PointerDown(nullptr, FIntPoint::ZeroValue, FSlateApplication::Get().GetCursorPos());
+		HeldItemController->PointerDown(nullptr, FVector2D::ZeroVector,FSlateApplication::Get().GetCursorPos());
 	}
 }

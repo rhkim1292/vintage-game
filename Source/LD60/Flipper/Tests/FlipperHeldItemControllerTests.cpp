@@ -10,8 +10,11 @@
 
 	#include "UObject/StrongObjectPtr.h"
 	#include "FlipperHeldItemController.h"
+	#include "FlipperTestHelpers.h"
 	#include "InventoryGrid.h"
 	#include "FlipperItemDefinition.h"
+
+using namespace FlipperTestHelpers;
 
 namespace FlipperHeldItemTests
 {
@@ -61,10 +64,20 @@ namespace FlipperHeldItemTests
 		/** A press-drag-release: down on FromCell, move well past the threshold, up over ToCell. Returns whether the press picked something up. */
 		bool Drag(UInventoryGrid* FromGrid, FIntPoint FromCell, UInventoryGrid* ToGrid, FIntPoint ToCell)
 		{
-			Controller->PointerDown(FromGrid, FromCell, FVector2D(0.0, 0.0));
+			Controller->PointerDown(FromGrid, CellCentre(FromCell), FVector2D(0.0, 0.0));
 			const bool bPickedUp = Controller->IsHolding();
 			Controller->PointerMove(FVector2D(50.0, 0.0));
-			Controller->PointerUp(ToGrid, ToCell, FVector2D(50.0, 0.0));
+			Controller->PointerUp(ToGrid, CellCentre(ToCell), FVector2D(50.0, 0.0));
+			return bPickedUp;
+		}
+
+		/** Like Drag, but the release is at ToPos, a pointer position in fractional cell units (so it can be off the middle of a cell). */
+		bool DragToPos(UInventoryGrid* FromGrid, FIntPoint FromCell, UInventoryGrid* ToGrid, FVector2D ToPos)
+		{
+			Controller->PointerDown(FromGrid, CellCentre(FromCell), FVector2D(0.0, 0.0));
+			const bool bPickedUp = Controller->IsHolding();
+			Controller->PointerMove(FVector2D(50.0, 0.0));
+			Controller->PointerUp(ToGrid, ToPos, FVector2D(50.0, 0.0));
 			return bPickedUp;
 		}
 	};
@@ -83,17 +96,16 @@ bool FFlipperHeldPickUpTest::RunTest(const FString& Parameters)
 	const FFlipperItemInstance Item = F.PlaceItem(F.A.Get(), 2, 1, FIntPoint(3, 2));
 
 	// Pressing an empty cell picks nothing up.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	TestFalse(TEXT("empty cell: nothing held"), F.Controller->IsHolding());
 
 	// Pressing the right-hand cell of the 2x1 picks the whole item up.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(4, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(4, 2), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("holding after pressing an item"), F.Controller->IsHolding());
 	TestEqual(TEXT("held the right item"), F.Controller->GetHeldItem().Id, Item.Id);
 	TestTrue(TEXT("remembers the origin grid"), F.Controller->GetOriginGrid() == F.A.Get());
 	TestTrue(TEXT("remembers the origin cell"), F.Controller->GetOriginPlacement().Origin == FIntPoint(3, 2));
 	TestFalse(TEXT("remembers it was unrotated"), F.Controller->GetOriginPlacement().bRotated);
-	TestTrue(TEXT("grab offset is the footprint's centre cell"), F.Controller->GetGrabOffset() == FIntPoint(1, 0));
 	TestFalse(TEXT("not rotated"), F.Controller->IsHeldRotated());
 	TestTrue(TEXT("footprint is 2x1"), F.Controller->GetHeldFootprint() == FIntPoint(2, 1));
 
@@ -101,10 +113,15 @@ bool FFlipperHeldPickUpTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("left its cells empty (left half)"), F.IdAt(F.A.Get(), FIntPoint(3, 2)), (int32)INDEX_NONE);
 	TestEqual(TEXT("left its cells empty (right half)"), F.IdAt(F.A.Get(), FIntPoint(4, 2)), (int32)INDEX_NONE);
 
-	// Wherever the item is pressed, it is held by its centre cell: pressing the left cell gives the same offset.
+	// Pressing the left cell picks up the same item.
 	F.Controller->Cancel();
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(3, 2), FVector2D(10.0, 10.0));
-	TestTrue(TEXT("pressing the left cell: same grab offset"), F.Controller->GetGrabOffset() == FIntPoint(1, 0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(3, 2), FVector2D(10.0, 10.0));
+	TestEqual(TEXT("pressing the left cell: same item"), F.Controller->GetHeldItem().Id, Item.Id);
+
+	// The pointer picks the cell it is in, not the nearest one: 4.9 is still column 4, the item's right cell.
+	F.Controller->Cancel();
+	F.Controller->PointerDown(F.A.Get(), FVector2D(4.9, 2.9), FVector2D(10.0, 10.0));
+	TestEqual(TEXT("pointer near the edge of the right cell: still that item"), F.Controller->GetHeldItem().Id, Item.Id);
 	return true;
 }
 
@@ -117,19 +134,19 @@ bool FFlipperHeldClickStyleTest::RunTest(const FString& Parameters)
 	const FFlipperItemInstance Item = F.PlaceItem(F.A.Get(), 2, 1, FIntPoint(0, 0));
 
 	// Click once: press and release in the same spot. The item stays held.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("still held after a click"), F.Controller->IsHolding());
 
-	// Click again over (4,1): the grab offset is the 2x1's centre cell (1,0), so the item lands with its origin on (3,1).
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(4, 1), FVector2D(200.0, 80.0));
+	// Click again with the pointer at (4.2, 1.5), just inside column 4: the 2x1 is centred on it, so its left edge is at 3.2, nearest line 3.
+	F.Controller->PointerDown(F.A.Get(), FVector2D(4.2, 1.5), FVector2D(200.0, 80.0));
 	TestFalse(TEXT("placed by the second click"), F.Controller->IsHolding());
 	TestEqual(TEXT("left cell of the placed item"), F.IdAt(F.A.Get(), FIntPoint(3, 1)), Item.Id);
 	TestEqual(TEXT("right cell of the placed item"), F.IdAt(F.A.Get(), FIntPoint(4, 1)), Item.Id);
 	TestEqual(TEXT("old cell is empty"), F.IdAt(F.A.Get(), FIntPoint(0, 0)), (int32)INDEX_NONE);
 
 	// The mouse-up that ends the second click must not pick anything up or move anything.
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(3, 1), FVector2D(200.0, 80.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(3, 1), FVector2D(200.0, 80.0));
 	TestFalse(TEXT("release after placing holds nothing"), F.Controller->IsHolding());
 	TestEqual(TEXT("item stayed where it was placed"), F.IdAt(F.A.Get(), FIntPoint(3, 1)), Item.Id);
 	return true;
@@ -143,8 +160,8 @@ bool FFlipperHeldDragStyleTest::RunTest(const FString& Parameters)
 	FHeldFixture			   F;
 	const FFlipperItemInstance Item = F.PlaceItem(F.A.Get(), 2, 1, FIntPoint(0, 0));
 
-	// Grab the left-hand cell, drag, release over (4,3): the item is held by its centre cell (1,0), so the origin is (4,3) - (1,0) = (3,3).
-	F.Drag(F.A.Get(), FIntPoint(0, 0), F.A.Get(), FIntPoint(4, 3));
+	// Grab the left-hand cell, drag, release at (4.2, 3.5): the 2x1 is centred on the pointer, so its left edge is at 3.2 (nearest line 3) and its row is 3.
+	F.DragToPos(F.A.Get(), FIntPoint(0, 0), F.A.Get(), FVector2D(4.2, 3.5));
 
 	TestFalse(TEXT("dropped on release"), F.Controller->IsHolding());
 	TestEqual(TEXT("left cell of the dropped item"), F.IdAt(F.A.Get(), FIntPoint(3, 3)), Item.Id);
@@ -162,18 +179,18 @@ bool FFlipperHeldDragThresholdTest::RunTest(const FString& Parameters)
 	const FFlipperItemInstance Item = F.PlaceItem(F.A.Get(), 1, 1, FIntPoint(2, 2));
 
 	// A 3 px wobble is under the 5 px threshold, so releasing is still a click: the item stays held.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(2, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(2, 2), FVector2D(10.0, 10.0));
 	F.Controller->PointerMove(FVector2D(13.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(0, 0), FVector2D(13.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(0, 0), FVector2D(13.0, 10.0));
 	TestTrue(TEXT("3 px is a click, not a drag"), F.Controller->IsHolding());
 
 	F.Controller->Cancel();
 	TestFalse(TEXT("cancel ends the hold"), F.Controller->IsHolding());
 
 	// 6 px is over the threshold, so releasing over a valid cell drops the item there.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(2, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(2, 2), FVector2D(10.0, 10.0));
 	F.Controller->PointerMove(FVector2D(16.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(0, 0), FVector2D(16.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(0, 0), FVector2D(16.0, 10.0));
 	TestFalse(TEXT("6 px is a drag: dropped on release"), F.Controller->IsHolding());
 	TestEqual(TEXT("dropped at the released cell"), F.IdAt(F.A.Get(), FIntPoint(0, 0)), Item.Id);
 	return true;
@@ -195,17 +212,18 @@ bool FFlipperHeldInvalidDropTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("overlap: back at its right cell"), F.IdAt(F.A.Get(), FIntPoint(1, 0)), Wide.Id);
 	TestEqual(TEXT("overlap: the other item is untouched"), F.IdAt(F.A.Get(), FIntPoint(4, 0)), Blocker.Id);
 
-	// Drop half off the left edge: the cursor is over column 0, so the item's origin is column -1. Refused, snaps back.
-	TestTrue(TEXT("off the edge: the press picked the item up"), F.Drag(F.A.Get(), FIntPoint(0, 0), F.A.Get(), FIntPoint(0, 2)));
+	// Drop half off the left edge: the pointer is over column 0 but left of its middle, so the 2x1's left edge is at -0.8, nearest line -1.
+	// The origin is column -1. Refused, snaps back.
+	TestTrue(TEXT("off the edge: the press picked the item up"), F.DragToPos(F.A.Get(), FIntPoint(0, 0), F.A.Get(), FVector2D(0.2, 2.5)));
 	TestFalse(TEXT("off the edge: nothing held afterwards"), F.Controller->IsHolding());
 	TestEqual(TEXT("off the edge: back at its origin"), F.IdAt(F.A.Get(), FIntPoint(0, 0)), Wide.Id);
 	TestEqual(TEXT("off the edge: nothing left at the target"), F.IdAt(F.A.Get(), FIntPoint(0, 2)), (int32)INDEX_NONE);
 
 	// Click style: the second click lands on an occupied cell. Same rule: snap back.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("click style overlap: held after the first click"), F.Controller->IsHolding());
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(4, 0), FVector2D(90.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(4, 0), FVector2D(90.0, 10.0));
 	TestFalse(TEXT("click style overlap: nothing held afterwards"), F.Controller->IsHolding());
 	TestEqual(TEXT("click style overlap: back at its origin"), F.IdAt(F.A.Get(), FIntPoint(0, 0)), Wide.Id);
 	return true;
@@ -225,10 +243,10 @@ bool FFlipperHeldDropOutsideTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("drag release over no grid: back at its origin"), F.IdAt(F.A.Get(), FIntPoint(1, 1)), Item.Id);
 
 	// Second click over nothing: snap back too.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(1, 2), FVector2D(10.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(1, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(1, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(1, 2), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("click over no grid: held after the first click"), F.Controller->IsHolding());
-	F.Controller->PointerDown(nullptr, FIntPoint(0, 0), FVector2D(300.0, 10.0));
+	F.Controller->PointerDown(nullptr, CellCentre(0, 0), FVector2D(300.0, 10.0));
 	TestFalse(TEXT("click over no grid: nothing held"), F.Controller->IsHolding());
 	TestEqual(TEXT("click over no grid: back at its origin"), F.IdAt(F.A.Get(), FIntPoint(1, 1)), Item.Id);
 	TestEqual(TEXT("click over no grid: back at its origin (second cell)"), F.IdAt(F.A.Get(), FIntPoint(1, 2)), Item.Id);
@@ -247,21 +265,22 @@ bool FFlipperHeldRotateTest::RunTest(const FString& Parameters)
 	F.Controller->Rotate();
 	TestFalse(TEXT("rotate with nothing held: still nothing held"), F.Controller->IsHolding());
 
-	// Grab the 4x2's top-right cell: it is held by its centre cell, (2,1).
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(3, 0), FVector2D(10.0, 10.0));
-	TestTrue(TEXT("grab offset (2,1)"), F.Controller->GetGrabOffset() == FIntPoint(2, 1));
+	// Grab the 4x2. With the pointer on the grid point (3,2), it is centred there: its top-left corner is (3,2) - (2,1) = (1,1).
+	F.Controller->PointerDown(F.A.Get(), CellCentre(3, 0), FVector2D(10.0, 10.0));
+	const FVector2D Pointer(3.0, 2.0);
+	TestTrue(TEXT("4x2 centred on the pointer: origin (1,1)"), F.Controller->GetDropOrigin(Pointer) == FIntPoint(1, 1));
 
-	// Rotating makes the 2x4 footprint, held by its own centre cell (1,2).
+	// Rotating makes the 2x4 footprint, centred on the same pointer: (3,2) - (1,2) = (2,0).
 	F.Controller->Rotate();
 	TestTrue(TEXT("now rotated"), F.Controller->IsHeldRotated());
 	TestTrue(TEXT("footprint is 2x4"), F.Controller->GetHeldFootprint() == FIntPoint(2, 4));
-	TestTrue(TEXT("grab offset is the centre of the 2x4: (1,2)"), F.Controller->GetGrabOffset() == FIntPoint(1, 2));
+	TestTrue(TEXT("2x4 centred on the pointer: origin (2,0)"), F.Controller->GetDropOrigin(Pointer) == FIntPoint(2, 0));
 
-	// Rotating back gives the 4x2 footprint and its centre cell again.
+	// Rotating back gives the 4x2 footprint and its origin again.
 	F.Controller->Rotate();
 	TestFalse(TEXT("rotated back"), F.Controller->IsHeldRotated());
 	TestTrue(TEXT("footprint is 4x2 again"), F.Controller->GetHeldFootprint() == FIntPoint(4, 2));
-	TestTrue(TEXT("grab offset is the centre of the 4x2: (2,1)"), F.Controller->GetGrabOffset() == FIntPoint(2, 1));
+	TestTrue(TEXT("4x2 centred on the pointer again: origin (1,1)"), F.Controller->GetDropOrigin(Pointer) == FIntPoint(1, 1));
 	return true;
 }
 
@@ -277,28 +296,28 @@ bool FFlipperHeldGhostTest::RunTest(const FString& Parameters)
 	FIntPoint Origin;
 	bool	  bValid = false;
 
-	TestFalse(TEXT("no ghost while nothing is held"), F.Controller->GetGhost(F.A.Get(), FIntPoint(2, 2), Origin, bValid));
+	TestFalse(TEXT("no ghost while nothing is held"), F.Controller->GetGhost(F.A.Get(), CellCentre(2, 2), Origin, bValid));
 
-	// Hold the 3x2 by its top-right cell: it is held by its centre cell, offset (1,1).
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(2, 0), FVector2D(10.0, 10.0));
+	// Hold the 3x2. Its top-left corner is the pointer minus (1.5, 1), rounded to the nearest cell.
+	F.Controller->PointerDown(F.A.Get(), CellCentre(2, 0), FVector2D(10.0, 10.0));
 
-	TestFalse(TEXT("no ghost over no grid"), F.Controller->GetGhost(nullptr, FIntPoint(2, 2), Origin, bValid));
+	TestFalse(TEXT("no ghost over no grid"), F.Controller->GetGhost(nullptr, CellCentre(2, 2), Origin, bValid));
 
-	// Cursor over (3,2): origin = (3,2) - (1,1) = (2,1). Covers x 2..4, y 1..2, all free: green.
-	TestTrue(TEXT("ghost exists"), F.Controller->GetGhost(F.A.Get(), FIntPoint(3, 2), Origin, bValid));
-	TestTrue(TEXT("ghost origin is the hovered cell minus the grab offset"), Origin == FIntPoint(2, 1));
+	// Pointer at (3.5, 2.2): corner (2.0, 1.2), so origin (2,1). Covers x 2..4, y 1..2, all free: green.
+	TestTrue(TEXT("ghost exists"), F.Controller->GetGhost(F.A.Get(), FVector2D(3.5, 2.2), Origin, bValid));
+	TestTrue(TEXT("ghost origin is the pointer minus half the footprint, rounded"), Origin == FIntPoint(2, 1));
 	TestTrue(TEXT("free cells: green"), bValid);
 
-	// Cursor over (5,3): origin (4,2) would run off the right edge: red. The origin is still reported.
-	TestTrue(TEXT("ghost exists off the edge"), F.Controller->GetGhost(F.A.Get(), FIntPoint(5, 3), Origin, bValid));
+	// Pointer at (5.5, 3.2): origin (4,2) would run off the right edge: red. The origin is still reported.
+	TestTrue(TEXT("ghost exists off the edge"), F.Controller->GetGhost(F.A.Get(), FVector2D(5.5, 3.2), Origin, bValid));
 	TestTrue(TEXT("origin still reported when red"), Origin == FIntPoint(4, 2));
 	TestFalse(TEXT("hanging off the edge: red"), bValid);
 
-	// Cursor over (4,2): origin (3,1) covers x 3..5, y 1..2, all free (the 1x1 sits at (5,3)): green.
-	// Cursor over (4,3): origin (3,2) covers y 2..3 and includes (5,3), which is taken: red.
-	F.Controller->GetGhost(F.A.Get(), FIntPoint(4, 2), Origin, bValid);
+	// Pointer at (4.5, 2.2): origin (3,1) covers x 3..5, y 1..2, all free (the 1x1 sits at (5,3)): green.
+	// Pointer at (4.5, 3.2): origin (3,2) covers y 2..3 and includes (5,3), which is taken: red.
+	F.Controller->GetGhost(F.A.Get(), FVector2D(4.5, 2.2), Origin, bValid);
 	TestTrue(TEXT("just clear of the other item: green"), bValid);
-	F.Controller->GetGhost(F.A.Get(), FIntPoint(4, 3), Origin, bValid);
+	F.Controller->GetGhost(F.A.Get(), FVector2D(4.5, 3.2), Origin, bValid);
 	TestFalse(TEXT("overlapping the other item: red"), bValid);
 	return true;
 }
@@ -311,27 +330,56 @@ bool FFlipperHeldRotateGhostTest::RunTest(const FString& Parameters)
 	FHeldFixture F;
 	F.PlaceItem(F.A.Get(), 4, 2, FIntPoint(0, 0));
 
-	// Hold the 4x2 (centre cell (2,1)) and hover (4,2): the ghost origin is (2,1).
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(3, 0), FVector2D(10.0, 10.0));
-	FIntPoint Origin;
-	bool	  bValid = false;
-	F.Controller->GetGhost(F.A.Get(), FIntPoint(4, 2), Origin, bValid);
+	// Hold the 4x2 and put the pointer on the grid point (4,2): the ghost origin is (4,2) - (2,1) = (2,1).
+	F.Controller->PointerDown(F.A.Get(), CellCentre(3, 0), FVector2D(10.0, 10.0));
+	const FVector2D Pointer(4.0, 2.0);
+	FIntPoint		Origin;
+	bool			bValid = false;
+	F.Controller->GetGhost(F.A.Get(), Pointer, Origin, bValid);
 	TestTrue(TEXT("before rotating"), Origin == FIntPoint(2, 1));
 
-	// After rotating, the footprint is 2x4 and the grab offset its centre cell (1,2), so with the cursor still on (4,2) the origin is (3,0).
-	// That 2x4 covers x 3..4, y 0..3, which still includes (4,2): the item stays centred on the cursor.
+	// After rotating, the footprint is 2x4, so with the pointer still on (4,2) the origin is (4,2) - (1,2) = (3,0).
+	// That 2x4 covers x 3..4, y 0..3: the item stays centred on the pointer.
 	F.Controller->Rotate();
-	F.Controller->GetGhost(F.A.Get(), FIntPoint(4, 2), Origin, bValid);
+	F.Controller->GetGhost(F.A.Get(), Pointer, Origin, bValid);
 	TestTrue(TEXT("after rotating"), Origin == FIntPoint(3, 0));
 	TestTrue(TEXT("rotated ghost is valid"), bValid);
 
 	// Dropping now places the item rotated.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(4, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), Pointer, FVector2D(10.0, 10.0));
 	TestFalse(TEXT("dropped"), F.Controller->IsHolding());
 	TestEqual(TEXT("top of the rotated item"), F.IdAt(F.A.Get(), FIntPoint(3, 0)), 1);
 	TestEqual(TEXT("bottom-right of the rotated item"), F.IdAt(F.A.Get(), FIntPoint(4, 2)), 1);
 	const FFlipperPlacedItem* Placed = F.A->FindItemAt(FIntPoint(4, 2));
 	TestTrue(TEXT("placed rotated"), Placed && Placed->Placement.bRotated);
+	return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperHeldSnapTest, "Flipper.HeldItem.DropSnapsToNearestLine", FLIPPER_HELD_TEST_FLAGS)
+bool FFlipperHeldSnapTest::RunTest(const FString& Parameters)
+{
+	FHeldFixture F;
+	F.PlaceItem(F.A.Get(), 2, 1, FIntPoint(0, 0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
+
+	// The 2x1 is 2 wide (even), so its left edge is 1 cell left of the pointer. It flips to the next column once the pointer passes the middle of a cell.
+	TestEqual(TEXT("pointer at 4.2: left edge 3.2, column 3"), F.Controller->GetDropOrigin(FVector2D(4.2, 0.5)).X, 3);
+	TestEqual(TEXT("pointer at 4.49: left edge 3.49, column 3"), F.Controller->GetDropOrigin(FVector2D(4.49, 0.5)).X, 3);
+	TestEqual(TEXT("pointer at 4.5: left edge 3.5, column 4"), F.Controller->GetDropOrigin(FVector2D(4.5, 0.5)).X, 4);
+	TestEqual(TEXT("pointer at 4.9: left edge 3.9, column 4"), F.Controller->GetDropOrigin(FVector2D(4.9, 0.5)).X, 4);
+
+	// It is 1 tall (odd), so its row is the one under the pointer, wherever in that row the pointer is.
+	TestEqual(TEXT("pointer at the top of row 2: row 2"), F.Controller->GetDropOrigin(FVector2D(1.0, 2.0)).Y, 2);
+	TestEqual(TEXT("pointer at the bottom of row 2: row 2"), F.Controller->GetDropOrigin(FVector2D(1.0, 2.99)).Y, 2);
+
+	// Rotated, the same item is 1 wide and 2 tall: the roles swap.
+	F.Controller->Rotate();
+	TestEqual(TEXT("rotated: its column is the one under the pointer (left)"), F.Controller->GetDropOrigin(FVector2D(3.01, 1.0)).X, 3);
+	TestEqual(TEXT("rotated: its column is the one under the pointer (right)"), F.Controller->GetDropOrigin(FVector2D(3.99, 1.0)).X, 3);
+	TestEqual(TEXT("rotated: top edge 1.2, row 1"), F.Controller->GetDropOrigin(FVector2D(3.5, 2.2)).Y, 1);
+	TestEqual(TEXT("rotated: top edge 1.5, row 2"), F.Controller->GetDropOrigin(FVector2D(3.5, 2.5)).Y, 2);
 	return true;
 }
 
@@ -348,7 +396,7 @@ bool FFlipperHeldCancelTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("cancel with nothing held changes nothing"), F.IdAt(F.A.Get(), FIntPoint(3, 2)), Item.Id);
 
 	// Pick up, rotate, cancel: back in its original, unrotated placement.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(3, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(3, 2), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("picked up before cancelling"), F.Controller->IsHolding());
 	F.Controller->Rotate();
 	TestTrue(TEXT("rotated before cancelling"), F.Controller->IsHeldRotated());
@@ -369,12 +417,12 @@ bool FFlipperHeldRotatedPlacedItemTest::RunTest(const FString& Parameters)
 	const FFlipperItemInstance Item = F.PlaceItem(F.A.Get(), 3, 1, FIntPoint(1, 0), /*bRotated=*/true);
 
 	// The 3x1 sits turned: a 1x3 column over (1,0), (1,1), (1,2). Grab its bottom cell.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(1, 2), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(1, 2), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("holding"), F.Controller->IsHolding());
 	TestTrue(TEXT("still rotated"), F.Controller->IsHeldRotated());
 	TestTrue(TEXT("origin placement was rotated"), F.Controller->GetOriginPlacement().bRotated);
 	TestTrue(TEXT("footprint is the rotated 1x3"), F.Controller->GetHeldFootprint() == FIntPoint(1, 3));
-	TestTrue(TEXT("grab offset is the centre of the rotated footprint"), F.Controller->GetGrabOffset() == FIntPoint(0, 1));
+	TestTrue(TEXT("the column is centred on the pointer: over the middle of (1,2) its top is row 1"), F.Controller->GetDropOrigin(CellCentre(1, 2)) == FIntPoint(1, 1));
 
 	// Snap back restores the rotated placement.
 	F.Controller->Cancel();
@@ -426,12 +474,12 @@ bool FFlipperHeldCrossGridTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("same-grid move succeeded"), F.IdAt(F.A.Get(), FIntPoint(0, 3)), Item.Id);
 
 	// The ghost shows red when the approver would refuse the cross-grid drop.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 3), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 3), FVector2D(10.0, 10.0));
 	FIntPoint Origin;
 	bool	  bValid = true;
-	F.Controller->GetGhost(F.B.Get(), FIntPoint(1, 1), Origin, bValid);
+	F.Controller->GetGhost(F.B.Get(), CellCentre(1, 1), Origin, bValid);
 	TestFalse(TEXT("approver refuses: ghost is red over a free cell in the other grid"), bValid);
-	F.Controller->GetGhost(F.A.Get(), FIntPoint(1, 1), Origin, bValid);
+	F.Controller->GetGhost(F.A.Get(), CellCentre(1, 1), Origin, bValid);
 	TestTrue(TEXT("same grid: ghost is green"), bValid);
 	return true;
 }
@@ -462,7 +510,7 @@ bool FFlipperHeldQuickTransferTest::RunTest(const FString& Parameters)
 	F.Controller->TransferApprover = nullptr;
 
 	// While an item is held, quick transfer is refused (B is empty, so the 2x1 would fit there).
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("holding the 1x1"), F.Controller->IsHolding());
 	TestFalse(TEXT("refused while holding"), F.Controller->QuickTransfer(F.A.Get(), FIntPoint(1, 0), F.B.Get()));
 	TestEqual(TEXT("refused while holding: item stays put"), F.IdAt(F.A.Get(), FIntPoint(1, 0)), Item.Id);
@@ -487,11 +535,11 @@ bool FFlipperHeldOnChangedTest::RunTest(const FString& Parameters)
 	F.Controller->OnChanged.AddLambda([&Count]() { ++Count; });
 
 	// Pressing an empty cell changes nothing, so it fires nothing.
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(5, 3), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(5, 3), FVector2D(10.0, 10.0));
 	TestEqual(TEXT("empty press: no broadcast"), Count, 0);
 
 	int32 Before = Count;
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	TestTrue(TEXT("pick-up broadcasts"), Count > Before);
 
 	Before = Count;
@@ -502,10 +550,10 @@ bool FFlipperHeldOnChangedTest::RunTest(const FString& Parameters)
 	F.Controller->Cancel();
 	TestTrue(TEXT("cancel broadcasts"), Count > Before);
 
-	F.Controller->PointerDown(F.A.Get(), FIntPoint(0, 0), FVector2D(10.0, 10.0));
+	F.Controller->PointerDown(F.A.Get(), CellCentre(0, 0), FVector2D(10.0, 10.0));
 	Before = Count;
 	F.Controller->PointerMove(FVector2D(60.0, 10.0));
-	F.Controller->PointerUp(F.A.Get(), FIntPoint(2, 2), FVector2D(60.0, 10.0));
+	F.Controller->PointerUp(F.A.Get(), CellCentre(2, 2), FVector2D(60.0, 10.0));
 	TestTrue(TEXT("drop broadcasts"), Count > Before);
 	return true;
 }

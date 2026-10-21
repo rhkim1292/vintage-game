@@ -10,11 +10,14 @@
 	#include "UObject/StrongObjectPtr.h"
 	#include "FlipperDayLoop.h"
 	#include "FlipperHeldItemController.h"
+	#include "FlipperTestHelpers.h"
 	#include "FlipperItemDefinition.h"
 	#include "FlipperItemGenerator.h"
 	#include "FlipperTradeRule.h"
 	#include "FlipperWallet.h"
 	#include "InventoryGrid.h"
+
+using namespace FlipperTestHelpers;
 
 namespace FlipperDayLoopTests
 {
@@ -353,9 +356,9 @@ bool FFlipperDayBoughtItemStuckTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("(setup: three days later the Market is open again)"), F.Loop->GetPhase(), EFlipperPhase::Market);
 
 	const int32 CashBefore = F.Wallet->GetCash();
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	F.Controller->PointerMove(FVector2D(50.0, 0.0));
-	F.Controller->PointerUp(F.Table.Get(), FIntPoint(7, 4), FVector2D(50.0, 0.0));
+	F.Controller->PointerUp(F.Table.Get(), CellCentre(7, 4), FVector2D(50.0, 0.0));
 
 	TestNotNull(TEXT("an item from an earlier day stays in the trunk"), F.Trunk->FindItemAt(FIntPoint(0, 0)));
 	TestEqual(TEXT("and no refund is paid"), F.Wallet->GetCash(), CashBefore);
@@ -368,7 +371,7 @@ bool FFlipperDayEndSnapsBackTest::RunTest(const FString& Parameters)
 	FDayFixture F;
 	F.Loop->StartRun();
 	F.PlaceInTrunk(FIntPoint(1, 1), true, true, true, 10);
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(1, 1), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(1, 1), FVector2D(0.0, 0.0));
 	TestTrue(TEXT("(setup: the item is held)"), F.Controller->IsHolding());
 
 	F.Loop->Tick(60.f);
@@ -392,9 +395,9 @@ bool FFlipperDayTradingTest::RunTest(const FString& Parameters)
 	// Buy in the Market.
 	const FFlipperPlacedItem* OnTable = F.Table->FindItemAt(F.Table->GetPlacedItems()[0].Placement.Origin);
 	const FIntPoint			  TableCell = OnTable->Placement.Origin;
-	F.Controller->PointerDown(F.Table.Get(), TableCell, FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Table.Get(), CellCentre(TableCell), FVector2D(0.0, 0.0));
 	F.Controller->PointerMove(FVector2D(50.0, 0.0));
-	F.Controller->PointerUp(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(50.0, 0.0));
+	F.Controller->PointerUp(F.Trunk.Get(), CellCentre(0, 0), FVector2D(50.0, 0.0));
 	TestNotNull(TEXT("buying works in the Market"), F.Trunk->FindItemAt(FIntPoint(0, 0)));
 
 	F.Loop->EndPhase();
@@ -506,17 +509,17 @@ bool FFlipperDayTestClickTest::RunTest(const FString& Parameters)
 	F.PlaceInTrunk(FIntPoint(1, 0), true, true);
 
 	// In the Market a click just picks the item up.
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	TestTrue(TEXT("in the Market a click picks the item up"), F.Controller->IsHolding());
 	F.Controller->Cancel();
 
 	F.GoToGarage();
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(0, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(0, 0), FVector2D(0.0, 0.0));
 	TestFalse(TEXT("in the Garage a click on an Untested item tests it instead of picking it up"), F.Controller->IsHolding());
 	TestTrue(TEXT("and it is now Tested"), F.Trunk->FindItemAt(FIntPoint(0, 0))->Item.bTested);
 	TestEqual(TEXT("for one charge"), F.Loop->GetTestChargesLeft(), 2);
 
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(1, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(1, 0), FVector2D(0.0, 0.0));
 	TestTrue(TEXT("a click on a Tested item still picks it up (to rearrange the trunk)"), F.Controller->IsHolding());
 	F.Controller->Cancel();
 	return true;
@@ -537,7 +540,7 @@ bool FFlipperDayTestNoChargeClickTest::RunTest(const FString& Parameters)
 		F.Loop->TryTestAt(F.Trunk.Get(), FIntPoint(X, 0));
 	}
 
-	F.Controller->PointerDown(F.Trunk.Get(), FIntPoint(3, 0), FVector2D(0.0, 0.0));
+	F.Controller->PointerDown(F.Trunk.Get(), CellCentre(3, 0), FVector2D(0.0, 0.0));
 
 	TestTrue(TEXT("with no charges left a click on an Untested item picks it up like any other"), F.Controller->IsHolding());
 	F.Controller->Cancel();

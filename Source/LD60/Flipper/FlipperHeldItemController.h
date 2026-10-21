@@ -54,20 +54,18 @@ public:
 	/** Where the held item sat in OriginGrid when picked up. */
 	const FFlipperPlacement& GetOriginPlacement() const { return OriginPlacement; }
 
-	/**
-	 *  Which cell of the held footprint is under the cursor, relative to the footprint's top-left. The held item is
-	 *  always centred on the cursor, wherever it was clicked, so this is the footprint's centre cell (GetCentreCell),
-	 *  in the footprint's current rotation.
-	 */
-	FIntPoint GetGrabOffset() const { return GrabOffset; }
-
 	bool IsHeldRotated() const { return bHeldRotated; }
 
 	/** Footprint of the held item in its current rotation, or (0,0) when nothing is held. */
 	FIntPoint GetHeldFootprint() const;
 
-	/** The cell of a footprint that sits under the cursor while it is held: its middle cell, the one after the middle line on an even side. */
-	static FIntPoint GetCentreCell(FIntPoint Footprint);
+	/**
+	 *  The origin the held item takes with the pointer at CellPos, which is the pointer in fractional cell units of the
+	 *  grid under it (the local pointer divided by the cell size, so (2.5, 1.5) is the middle of cell (2,1)). The held
+	 *  item is drawn centred on the pointer, so this is the footprint's top-left corner (CellPos minus half the
+	 *  footprint) rounded to the nearest cell. The ghost and the drop both use it, so they always agree.
+	 */
+	FIntPoint GetDropOrigin(FVector2D CellPos) const;
 
 	/** Unbound = every cross-grid move is allowed. */
 	FFlipperTransferApprover TransferApprover;
@@ -96,29 +94,30 @@ public:
 	FOnHeldItemChanged OnChanged;
 
 	/**
-	 *  Mouse button pressed over Cell of Grid (Grid may be null for "not over any grid").
-	 *  - Nothing held: if an item covers Cell, pick it up (remove it from Grid, remember the origin grid,
-	 *    its placement, the grab offset and its rotation) and remember ScreenPos as the press position.
-	 *    Pressing an empty cell does nothing.
-	 *  - Something held (click style, second click): try to drop it at Cell on Grid.
+	 *  Mouse button pressed with the pointer at CellPos (fractional cell units, see GetDropOrigin) of Grid (Grid may be
+	 *  null for "not over any grid").
+	 *  - Nothing held: if an item covers the cell under CellPos, pick it up (remove it from Grid, remember the origin
+	 *    grid, its placement and its rotation) and remember ScreenPos as the press position. Pressing an empty cell
+	 *    does nothing.
+	 *  - Something held (click style, second click): try to drop it at GetDropOrigin(CellPos) on Grid.
 	 *    A drop that is invalid or over no grid snaps the item back to its origin.
 	 */
-	void PointerDown(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos);
+	void PointerDown(UInventoryGrid* Grid, FVector2D CellPos, FVector2D ScreenPos);
 
 	/** Mouse moved to ScreenPos. Once it has been further than the drag threshold from the press, this press is a drag. */
 	void PointerMove(FVector2D ScreenPos);
 
 	/**
-	 *  Mouse button released over Cell of Grid (Grid may be null).
-	 *  - Holding and the press turned into a drag: try to drop at Cell on Grid (snap back if invalid or null).
+	 *  Mouse button released with the pointer at CellPos (fractional cell units) of Grid (Grid may be null).
+	 *  - Holding and the press turned into a drag: try to drop at GetDropOrigin(CellPos) on Grid (snap back if invalid or null).
 	 *  - Holding but never dragged: keep holding (click style; the next PointerDown places it).
 	 *  - Not holding: nothing happens.
 	 */
-	void PointerUp(UInventoryGrid* Grid, FIntPoint Cell, FVector2D ScreenPos);
+	void PointerUp(UInventoryGrid* Grid, FVector2D CellPos, FVector2D ScreenPos);
 
 	/**
-	 *  Toggle rotation of the held item (R or right-click). The grab offset becomes the centre cell of the new
-	 *  footprint, so the item stays centred on the cursor. Nothing held: does nothing.
+	 *  Toggle rotation of the held item (R or right-click). The item stays centred on the cursor, because the origin is
+	 *  worked out from the new footprint every time. Nothing held: does nothing.
 	 */
 	void Rotate();
 
@@ -126,11 +125,11 @@ public:
 	void Cancel();
 
 	/**
-	 *  The ghost for the current hover: the origin the held item would take with HoveredCell under the cursor
-	 *  (HoveredCell - GrabOffset), and whether dropping there is valid (it fits in Grid and the TransferApprover, if
-	 *  needed, allows it). Returns false when nothing is held or Grid is null; the outputs are then unspecified.
+	 *  The ghost for the current hover: the origin the held item would take with the pointer at CellPos (fractional cell
+	 *  units, GetDropOrigin), and whether dropping there is valid (it fits in Grid and the TransferApprover, if needed,
+	 *  allows it). Returns false when nothing is held or Grid is null; the outputs are then unspecified.
 	 */
-	bool GetGhost(const UInventoryGrid* Grid, FIntPoint HoveredCell, FIntPoint& OutOrigin, bool& bOutValid) const;
+	bool GetGhost(const UInventoryGrid* Grid, FVector2D CellPos, FIntPoint& OutOrigin, bool& bOutValid) const;
 
 	/**
 	 *  Shift-click: move the item covering Cell in From to the first fit in To (UInventoryGrid::FindFirstFit),
@@ -150,7 +149,6 @@ private:
 	TObjectPtr<UInventoryGrid> OriginGrid;
 
 	FFlipperPlacement OriginPlacement;
-	FIntPoint		  GrabOffset = FIntPoint::ZeroValue;
 	bool			  bHeldRotated = false;
 
 	float	  DragThresholdPixels = 5.f;
@@ -158,5 +156,5 @@ private:
 	bool	  bDragged = false;
 
 	void SnapBackHeldItem();
-	void DropHeldItem(UInventoryGrid* Grid, FIntPoint Cell);
+	void DropHeldItem(UInventoryGrid* Grid, FVector2D CellPos);
 };
