@@ -25,7 +25,7 @@ void AFlipperTestPlayerController::BeginPlay()
 	Trunk = NewObject<UInventoryGrid>(this);
 	Trunk->Init(TrunkColumns, TrunkRows);
 	SellerTable = NewObject<UInventoryGrid>(this);
-	SellerTable->Init(8, 5);
+	SellerTable->Init(SellerColumns, SellerRows);
 
 	HeldItemController = NewObject<UFlipperHeldItemController>(this);
 	HeldItemController->Init(5.f);
@@ -45,14 +45,10 @@ void AFlipperTestPlayerController::BeginPlay()
 	TrunkWidget = CreateWidget<UInventoryGridWidget>(this);
 	TrunkWidget->Setup(Trunk, HeldItemController, SellerTable, CellSize);
 	TrunkWidget->AddToViewport(0);
-	TrunkWidget->SetDesiredSizeInViewport(TrunkWidget->GetPixelSize());
-	TrunkWidget->SetPositionInViewport(FVector2D(40.f, 80.f), false);
 
 	SellerTableWidget = CreateWidget<UInventoryGridWidget>(this);
 	SellerTableWidget->Setup(SellerTable, HeldItemController, Trunk, CellSize);
 	SellerTableWidget->AddToViewport(0);
-	SellerTableWidget->SetDesiredSizeInViewport(SellerTableWidget->GetPixelSize());
-	SellerTableWidget->SetPositionInViewport(FVector2D(40.f + TrunkColumns * CellSize + 60.f, 80.f), false);
 
 	Overlay = CreateWidget<UFlipperHeldItemOverlay>(this);
 	Overlay->Setup(HeldItemController, CellSize);
@@ -76,8 +72,6 @@ void AFlipperTestPlayerController::BeginPlay()
 	DayHud = CreateWidget<UFlipperDayHud>(this);
 	DayHud->Setup(DayLoop);
 	DayHud->AddToViewport(12);
-	DayHud->SetDesiredSizeInViewport(FVector2D(UFlipperDayHud::PanelWidth, UFlipperDayHud::PanelHeight));
-	DayHud->SetPositionInViewport(FVector2D(40.f + TrunkColumns * CellSize + 60.f, 14.f), false);
 
 	PhaseBanner = CreateWidget<UFlipperPhaseBanner>(this);
 	PhaseBanner->Setup(DayLoop);
@@ -88,6 +82,8 @@ void AFlipperTestPlayerController::BeginPlay()
 	EndScreen->Setup(DayLoop);
 	EndScreen->AddToViewport(14);
 
+	LayoutWidgets();
+
 	DayLoop->StartRun();
 
 	bShowMouseCursor = true;
@@ -95,6 +91,41 @@ void AFlipperTestPlayerController::BeginPlay()
 	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+}
+
+FVector2D AFlipperTestPlayerController::GetLayoutSize()
+{
+	const float GridsTop = UFlipperDayHud::PanelHeight + RowGap;
+	const float RightColumnX = TrunkColumns * CellSize + ColumnGap;
+	return FVector2D(RightColumnX + FMath::Max(UFlipperDayHud::PanelWidth, SellerColumns * CellSize), GridsTop + FMath::Max(TrunkRows, SellerRows) * CellSize);
+}
+
+void AFlipperTestPlayerController::LayoutWidgets()
+{
+	const FVector2D TrunkSize = TrunkWidget->GetPixelSize();
+	const FVector2D TableSize = SellerTableWidget->GetPixelSize();
+	const FVector2D HudSize(UFlipperDayHud::PanelWidth, UFlipperDayHud::PanelHeight);
+	const FVector2D CashSize(UFlipperCashWidget::PanelWidth, UFlipperCashWidget::PanelHeight);
+
+	// The block, in its own space (origin at its top-left): the cash panel and the trunk on the left, the day HUD above
+	// the seller table on the right. Its size is only used to find its centre.
+	const float		GridsTop = HudSize.Y + RowGap;
+	const float		RightColumnX = TrunkSize.X + ColumnGap;
+	const FVector2D BlockSize = GetLayoutSize();
+
+	// Every piece is anchored to the viewport's centre and offset from it, so the block stays centred whatever the window size.
+	// SetPositionInViewport and SetDesiredSizeInViewport both reset the anchors to the top-left corner, so the anchors go last.
+	auto Place = [&BlockSize](UUserWidget* Widget, FVector2D BlockPos, FVector2D Size)
+	{
+		Widget->SetPositionInViewport(BlockPos - BlockSize * 0.5, false);
+		Widget->SetDesiredSizeInViewport(Size);
+		Widget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
+	};
+
+	Place(CashWidget, FVector2D(0.f, (HudSize.Y - CashSize.Y) * 0.5f), CashSize);
+	Place(DayHud, FVector2D(RightColumnX, 0.f), HudSize);
+	Place(TrunkWidget, FVector2D(0.f, GridsTop), TrunkSize);
+	Place(SellerTableWidget, FVector2D(RightColumnX, GridsTop), TableSize);
 }
 
 void AFlipperTestPlayerController::PlayerTick(float DeltaTime)

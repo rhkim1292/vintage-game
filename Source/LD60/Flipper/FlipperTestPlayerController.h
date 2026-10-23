@@ -33,6 +33,13 @@ class AFlipperTestPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+public:
+	/**
+	 *  Size in UI units of the block LayoutWidgets centres: the cash panel and the trunk on the left, the day HUD above
+	 *  the seller table on the right. UFlipperDpiScalingRule scales the UI so this block fits the viewport.
+	 */
+	static FVector2D GetLayoutSize();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -44,6 +51,13 @@ private:
 	/** The trunk is small on purpose: limited space makes the player choose what to keep. */
 	static constexpr int32 TrunkColumns = 4;
 	static constexpr int32 TrunkRows = 3;
+
+	static constexpr int32 SellerColumns = 8;
+	static constexpr int32 SellerRows = 5;
+
+	/** Space between the trunk and the right-hand column, and between the day HUD and the seller table, in UI units. */
+	static constexpr float ColumnGap = 60.f;
+	static constexpr float RowGap = 12.f;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryGrid> Trunk;
@@ -92,6 +106,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UFlipperItemTooltip> Tooltip;
+
+	/** Sizes the grids, the day HUD and the cash panel and anchors them as one block centred on the viewport. The full-screen widgets (overlay, tooltip, banner, end screen) centre themselves. */
+	void LayoutWidgets();
 
 	UFlipperItemDefinition* MakeDefinition(const TCHAR* Name, int32 Width, int32 Height);
 	void					FillTestItems();

@@ -9,9 +9,9 @@
 class UFlipperWallet;
 
 /**
- *  The cash HUD (Docs/FlipperSpec.md, Feature 3): a small click-through panel in the top-left corner showing the
- *  wallet's whole-dollar cash. Paints itself from NativePaint like the other Flipper widgets and reads the wallet
- *  every frame, so it is always current.
+ *  The cash HUD (Docs/FlipperSpec.md, Feature 3): a small click-through panel showing the wallet's whole-dollar cash.
+ *  Paints itself from NativePaint like the other Flipper widgets and reads the wallet every frame, so it is always
+ *  current. It fills only its own panel: size and place it with the viewport setters (the test controller's LayoutWidgets).
  */
 UCLASS()
 class UFlipperCashWidget : public UUserWidget
@@ -19,6 +19,9 @@ class UFlipperCashWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	static constexpr float PanelWidth = 150.f;
+	static constexpr float PanelHeight = 34.f;
+
 	void Setup(UFlipperWallet* InWallet);
 
 protected:

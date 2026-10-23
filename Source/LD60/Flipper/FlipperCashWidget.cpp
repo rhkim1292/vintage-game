@@ -23,8 +23,8 @@ int32 UFlipperCashWidget::NativePaint(const FPaintArgs& Args, const FGeometry& A
 		return LayerId;
 	}
 
-	const FVector2D Pos(40.f, 24.f);
-	const FVector2D Size(150.f, 34.f);
+	const FVector2D Pos = FVector2D::ZeroVector;
+	const FVector2D Size(PanelWidth, PanelHeight);
 	FlipperPaint::Box(OutDrawElements, LayerId, AllottedGeometry, Pos, Size, FLinearColor(0.02f, 0.02f, 0.03f, 0.92f));
 	FlipperPaint::Outline(OutDrawElements, LayerId + 1, AllottedGeometry, Pos, Size, 1.f, FLinearColor(0.3f, 0.9f, 0.4f, 1.f));
 	FlipperPaint::Label(OutDrawElements, LayerId + 1, AllottedGeometry, Pos + FVector2D(10.f, 8.f), FString::Printf(TEXT("Cash  $%d"), Wallet->GetCash()), FLinearColor(0.3f, 0.9f, 0.4f, 1.f));
