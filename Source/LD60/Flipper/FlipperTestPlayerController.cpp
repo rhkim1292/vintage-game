@@ -200,8 +200,14 @@ bool AFlipperTestPlayerController::FillRolledItems()
 		return false;
 	}
 
+	// Traits are optional: with no assets under /Game/Flipper/Traits, no item gets one.
+	UObjectLibrary* TraitLibrary = UObjectLibrary::CreateLibrary(UFlipperTraitDefinition::StaticClass(), false, GIsEditor);
+	TraitLibrary->LoadAssetsFromPath(TEXT("/Game/Flipper/Traits"));
+	TArray<UFlipperTraitDefinition*> Traits;
+	TraitLibrary->GetObjects<UFlipperTraitDefinition>(Traits);
+
 	Generator = NewObject<UFlipperItemGenerator>(this);
-	Generator->Init(Definitions, FFlipperGenerationConfig());
+	Generator->Init(Definitions, FFlipperGenerationConfig(), FFlipperPricingConfig(), Traits);
 
 	// The trunk starts empty (everything in it has to be bought) and the day loop rolls each day's seller table.
 	return true;

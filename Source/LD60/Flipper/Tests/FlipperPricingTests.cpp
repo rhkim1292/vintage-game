@@ -35,6 +35,28 @@ namespace FlipperPricingTests
 			return Definition;
 		}
 
+		TArray<TStrongObjectPtr<UFlipperTraitDefinition>> TraitDefinitions;
+
+		UFlipperTraitDefinition* MakeTrait(float ValueMultiplier)
+		{
+			UFlipperTraitDefinition* Trait = NewObject<UFlipperTraitDefinition>();
+			Trait->ValueMultiplier = ValueMultiplier;
+			TraitDefinitions.Emplace(Trait);
+			return Trait;
+		}
+
+		/** A Tested, working item of the given base value, rarity and condition, carrying one trait per multiplier given. */
+		FFlipperItemInstance MakeItemWith(int32 BaseValue, EFlipperRarity Rarity, EFlipperCondition Condition, std::initializer_list<float> TraitMultipliers = {})
+		{
+			FFlipperItemInstance Item = MakeItem(BaseValue, Rarity);
+			Item.Condition = Condition;
+			for (const float Multiplier : TraitMultipliers)
+			{
+				Item.Traits.Add(MakeTrait(Multiplier));
+			}
+			return Item;
+		}
+
 		FFlipperItemInstance MakeItem(int32 BaseValue, EFlipperRarity Rarity = EFlipperRarity::Common, bool bTested = true)
 		{
 			FFlipperItemInstance Item;
@@ -80,6 +102,87 @@ bool FFlipperPricingValueTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("an item with no Definition is worth 0"), FlipperPricing::GetValue(FFlipperItemInstance(), F.Config), 0);
 	return true;
 }
+
+// Condition and traits (Docs/FlipperSpec.md, Feature 7).
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingConditionTest, "Flipper.Pricing.Condition", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingConditionTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	// Defaults: Poor x0.6, Fair x0.85, Good x1, Mint x1.3. Good is the baseline, so an item that never set a condition is unchanged.
+	TestEqual(TEXT("Poor is x0.6"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Poor), F.Config), 60);
+	TestEqual(TEXT("Fair is x0.85"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Fair), F.Config), 85);
+	TestEqual(TEXT("Good is x1"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good), F.Config), 100);
+	TestEqual(TEXT("Mint is x1.3"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Mint), F.Config), 130);
+	TestEqual(TEXT("an item with the default condition is worth its base value"), FlipperPricing::GetValue(F.MakeItem(100), F.Config), 100);
+
+	// It stacks with rarity.
+	TestEqual(TEXT("Uncommon (x2) and Mint (x1.3) on 100 is 260"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Uncommon, EFlipperCondition::Mint), F.Config), 260);
+
+	// The multipliers come from the config.
+	F.Config.PoorMultiplier = 0.5f;
+	TestEqual(TEXT("Poor at x0.5 on 100 is 50"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Poor), F.Config), 50);
+
+	// Rounded once at the end: 7 x 1.5 x 0.6 is 6.3 (6). Rounding the rarity step first (10.5, which is 11) would give 11 x 0.6 = 6.6 (7).
+	F.Config.UncommonMultiplier = 1.5f;
+	F.Config.PoorMultiplier = 0.6f;
+	TestEqual(TEXT("the value is rounded once, not after each multiplier"), FlipperPricing::GetValue(F.MakeItemWith(7, EFlipperRarity::Uncommon, EFlipperCondition::Poor), F.Config), 6);
+
+	TestEqual(TEXT("GetConditionMultiplier reads the config"), FlipperPricing::GetConditionMultiplier(EFlipperCondition::Mint, F.Config), 1.3f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingTraitsTest, "Flipper.Pricing.Traits", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingTraitsTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	// The multiplier of an item is the product of its traits' multipliers.
+	TestEqual(TEXT("no traits gives x1"), FlipperPricing::GetTraitMultiplier(F.MakeItem(100)), 1.f);
+	TestEqual(TEXT("one trait gives its multiplier"), FlipperPricing::GetTraitMultiplier(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good, { 1.4f })), 1.4f);
+	TestEqual(TEXT("two traits multiply: 1.4 x 0.6 is 0.84"), FlipperPricing::GetTraitMultiplier(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good, { 1.4f, 0.6f })), 0.84f);
+
+	FFlipperItemInstance WithNull = F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good, { 1.2f });
+	WithNull.Traits.Add(nullptr);
+	TestEqual(TEXT("a null trait entry counts as x1"), FlipperPricing::GetTraitMultiplier(WithNull), 1.2f);
+
+	// And it is part of the Value.
+	TestEqual(TEXT("a x1.4 trait on 100 is worth 140"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good, { 1.4f }), F.Config), 140);
+	TestEqual(TEXT("two traits, x1.4 and x0.6, on 100 are worth 84"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Good, { 1.4f, 0.6f }), F.Config), 84);
+	TestEqual(TEXT("Rare (x4), Mint (x1.3) and a x1.4 trait on 100 are worth 728"), FlipperPricing::GetValue(F.MakeItemWith(100, EFlipperRarity::Rare, EFlipperCondition::Mint, { 1.4f }), F.Config), 728);
+
+	// An item with no definition is still worth nothing, traits or not.
+	FFlipperItemInstance NoDefinition;
+	NoDefinition.Traits.Add(F.MakeTrait(2.f));
+	TestEqual(TEXT("an item with no Definition is worth 0"), FlipperPricing::GetValue(NoDefinition, F.Config), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingExtrasFlowThroughTest, "Flipper.Pricing.ExtrasFlowThrough", FLIPPER_PRICING_TEST_FLAGS)
+bool FFlipperPricingExtrasFlowThroughTest::RunTest(const FString& Parameters)
+{
+	FPricingFixture F;
+
+	// Scrap, the seller's ask and the buyer's offer all start from Value, so they pick up condition and traits.
+	FFlipperItemInstance DeadPoor = F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Poor);
+	DeadPoor.bWorks = false;
+	TestEqual(TEXT("a dead Poor 100 (Value 60) scraps for 6"), FlipperPricing::GetScrapValue(DeadPoor, F.Config), 6);
+	TestEqual(TEXT("a Tested dead Poor 100 is offered scrap, 6"), FlipperPricing::GetOffer(DeadPoor, F.Config, 1.f), 6);
+
+	F.Config.AskVariation = 0.f;
+	FRandomStream Random(1);
+	TestEqual(TEXT("Tested Fair 100 (Value 85) asks 63.75, which rounds to 64"), FlipperPricing::GetAskPrice(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Fair), F.Config, Random), 64);
+
+	TestEqual(TEXT("Tested working Mint 100 is offered 130"), FlipperPricing::GetOffer(F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Mint), F.Config, 1.f), 130);
+
+	FFlipperItemInstance UntestedBoxed = F.MakeItemWith(100, EFlipperRarity::Common, EFlipperCondition::Mint, { 1.4f });
+	UntestedBoxed.bTested = false;
+	TestEqual(TEXT("Untested Mint 100 with a x1.4 trait (Value 182) is offered half, 91"), FlipperPricing::GetOffer(UntestedBoxed, F.Config, 1.f), 91);
+	return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFlipperPricingScrapTest, "Flipper.Pricing.Scrap", FLIPPER_PRICING_TEST_FLAGS)
 bool FFlipperPricingScrapTest::RunTest(const FString& Parameters)

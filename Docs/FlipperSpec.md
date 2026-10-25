@@ -212,3 +212,30 @@ Full write-up: `Docs/FlipperWinLose-design.md`. When the last day's Sell phase e
 - **Cash only** counts. *Rejected:* cash plus the leftover items' offers.
 - **End screen:** headline, numbers, Play Again with a new seed. *Rejected:* a run summary (deferred to Phase 8 if time); replaying the same seed.
 - **Rent $450** (net +$250 over the $200 start); tuned in Phase 9.
+
+---
+
+## Feature 7: Item data, full scope: condition, traits, lots and categories (post-jam)
+
+Full write-up: `Docs/FlipperItemDataFull-design.md`. Extends Feature 2 (item data) and Feature 3 (pricing). **Condition** is a visible grade (Poor x0.6 / 45% works, Fair x0.85 / 60%, Good x1.0 / 75%, Mint x1.3 / 90%; roll weights 20 / 35 / 30 / 15) that multiplies Value and sets the works chance of an Untested item; Tested items still always work. **Traits** are 5 data assets (Boxed x1.4, With accessories x1.2, Prototype x1.8 rare; Modded x0.7, Missing parts x0.6), each a price multiplier plus a Gameplay Tag; an item has 0 / 1 / 2 traits at 55 / 35 / 10 percent. **Categories** are Gameplay Tags on each item definition (`Item.Category.*`), so collector requests can match "working, boxed, any handheld" as a tag query. **Lots** are item definitions with a lot flag ("Lot of N") and no new mechanics. The catalogue grows to 8 regular items (adding a Cassette Walkman 1x2 $30 and a VCR 3x1 $60) plus 2 lots (Box of Floppies 3x2 $45, Shoebox of Cassettes 2x2 $40, spawn weight 0.5 each). Value = BaseValue x rarity x condition x the traits' multipliers, rounded once; scrap, ask price and offer still derive from Value. The grid shows a one-letter condition badge (P / F / G / M); the tooltip gets a condition line and a traits line.
+
+### Locked decisions
+
+- **Condition changes the Untested works chance.** *Rejected:* cosmetic grade only; a grade hidden until the Garage test.
+- **A trait is a price multiplier plus a tag, nothing else.** *Rejected:* price only; gameplay traits (a Boxed item one cell bigger, a trait that lowers the works chance), which touch the footprint in the grid, widgets and about 40 tests.
+- **Definitions carry Gameplay Tags as categories** (adds the `GameplayTags` module). *Rejected:* a fixed enum with one category per definition; no categories.
+
+### Routine choices
+
+- **Lots are plain definitions that roll like any item** (an Untested lot can be dead). *Rejected:* opening a lot in the Garage; lots skipping some rolls.
+- **4 condition levels** with the numbers above. *Rejected:* 3 or 5 levels.
+- **Traits:** the 5 above, up to 2 per item, visible on the table. *Rejected:* at most 1 per item; per-definition trait lists.
+- **Display:** condition badge on the grid, traits in the tooltip only. *Rejected:* trait pips on the grid; tooltip only.
+- **Starter items:** Cassette Walkman and VCR; tags for all 8 are in the write-up. **Lots:** both at weight 0.5.
+- All numbers are data.
+
+### Handed to later grills
+
+- **Collector requests:** match items by tags (traits, categories), works flag, rarity and condition.
+- **Debt, credit limit and interest:** unaffected by this feature.
+- **Gameplay traits, opening a lot in the Garage:** deferred (see the write-up).

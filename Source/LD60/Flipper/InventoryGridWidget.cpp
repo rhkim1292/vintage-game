@@ -126,6 +126,12 @@ int32 UInventoryGridWidget::NativePaint(const FPaintArgs& Args, const FGeometry&
 		FlipperPaint::Box(OutDrawElements, LayerId + 1, AllottedGeometry, Pos, Size, FLinearColor::MakeFromHSV8(Hue, 140, 190));
 		FlipperPaint::Outline(OutDrawElements, LayerId + 2, AllottedGeometry, Pos, Size, 3.f, FlipperRarity::GetColor(Placed.Item.Rarity));
 		FlipperPaint::Label(OutDrawElements, LayerId + 2, AllottedGeometry, Pos + FVector2D(4.f, 2.f), Placed.Item.Definition->DisplayName.ToString(), FLinearColor::Black);
+			// Condition badge (Docs/FlipperSpec.md, Feature 7): a coloured letter on a dark pill in the top-right corner,
+			// readable whatever colour the item's box is.
+			const FVector2D BadgePos = Pos + FVector2D(Size.X - 18.f, 2.f);
+			FlipperPaint::Box(OutDrawElements, LayerId + 2, AllottedGeometry, BadgePos, FVector2D(15.f, 18.f), FLinearColor(0.02f, 0.02f, 0.03f, 0.75f));
+			FlipperPaint::Label(OutDrawElements, LayerId + 3, AllottedGeometry, BadgePos + FVector2D(3.f, 0.f), FlipperCondition::GetBadge(Placed.Item.Condition), FlipperCondition::GetColor(Placed.Item.Condition));
+
 			// A "?" marks an item whose works/dead flag is still hidden; a red "X" marks one that tested dead.
 			const FVector2D MarkPos = Pos + FVector2D(Size.X - 16.f, Size.Y - 22.f);
 			if (!Placed.Item.bTested)

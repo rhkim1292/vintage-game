@@ -12,6 +12,7 @@ public class LD60 : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"GameplayTags",
 			"InputCore",
 			"UMG",
 			"SlateCore",

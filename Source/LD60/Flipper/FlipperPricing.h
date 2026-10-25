@@ -34,6 +34,19 @@ struct FFlipperPricingConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
 	float RareMultiplier = 4.f;
 
+	/** ...times the multiplier of the item's condition (Docs/FlipperSpec.md, Feature 7). Good is the baseline. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
+	float PoorMultiplier = 0.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
+	float FairMultiplier = 0.85f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
+	float GoodMultiplier = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0))
+	float MintMultiplier = 1.3f;
+
 	/** A dead item is worth this fraction of its Value (scrap). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pricing", meta = (ClampMin = 0, ClampMax = 1))
 	float ScrapFraction = 0.1f;
@@ -99,9 +112,32 @@ namespace FlipperPricing
 		}
 	}
 
+	/** The condition's multiplier from the config. */
+	inline float GetConditionMultiplier(EFlipperCondition Condition, const FFlipperPricingConfig& Config)
+	{
+		switch (Condition)
+		{
+		case EFlipperCondition::Poor:
+			return Config.PoorMultiplier;
+		case EFlipperCondition::Fair:
+			return Config.FairMultiplier;
+		case EFlipperCondition::Mint:
+			return Config.MintMultiplier;
+		default:
+			return Config.GoodMultiplier;
+		}
+	}
+
 	/**
-	 *  What a WORKING copy of this item is worth: the definition's BaseValue times the rarity multiplier,
-	 *  rounded to the nearest whole dollar (FMath::RoundToInt). Does not depend on bTested or bWorks.
+	 *  The product of the ValueMultiplier of every trait on the item. An item with no traits gives 1. A null entry in
+	 *  Traits is skipped (counts as 1).
+	 */
+	float GetTraitMultiplier(const FFlipperItemInstance& Item);
+
+	/**
+	 *  What a WORKING copy of this item is worth: the definition's BaseValue times the rarity multiplier, times the
+	 *  condition multiplier, times GetTraitMultiplier, rounded ONCE at the end to the nearest whole dollar
+	 *  (FMath::RoundToInt). Does not depend on bTested or bWorks.
 	 */
 	int32 GetValue(const FFlipperItemInstance& Item, const FFlipperPricingConfig& Config);
 

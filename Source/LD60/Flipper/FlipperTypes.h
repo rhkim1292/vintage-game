@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "FlipperItemDefinition.h"
+#include "FlipperTraitDefinition.h"
 #include "FlipperTypes.generated.h"
 
 /** Rolled per item. Three tiers, weights in FFlipperGenerationConfig (Docs/FlipperSpec.md, Feature 2). */
@@ -45,10 +46,71 @@ namespace FlipperRarity
 	}
 } // namespace FlipperRarity
 
+/** Rolled per item. A visible grade that sets a price multiplier and the works chance of an Untested item (Docs/FlipperSpec.md, Feature 7). */
+UENUM(BlueprintType)
+enum class EFlipperCondition : uint8
+{
+	Poor,
+	Fair,
+	Good,
+	Mint
+};
+
+namespace FlipperCondition
+{
+	/** Tooltip word colour and grid badge colour: red, amber, green, cyan. */
+	inline FLinearColor GetColor(EFlipperCondition Condition)
+	{
+		switch (Condition)
+		{
+		case EFlipperCondition::Poor:
+			return FLinearColor(1.f, 0.35f, 0.3f, 1.f);
+		case EFlipperCondition::Fair:
+			return FLinearColor(1.f, 0.7f, 0.25f, 1.f);
+		case EFlipperCondition::Mint:
+			return FLinearColor(0.35f, 0.95f, 0.95f, 1.f);
+		default:
+			return FLinearColor(0.4f, 0.9f, 0.45f, 1.f);
+		}
+	}
+
+	inline const TCHAR* GetName(EFlipperCondition Condition)
+	{
+		switch (Condition)
+		{
+		case EFlipperCondition::Poor:
+			return TEXT("Poor");
+		case EFlipperCondition::Fair:
+			return TEXT("Fair");
+		case EFlipperCondition::Mint:
+			return TEXT("Mint");
+		default:
+			return TEXT("Good");
+		}
+	}
+
+	/** The one-letter badge drawn on the grid: P, F, G or M. */
+	inline const TCHAR* GetBadge(EFlipperCondition Condition)
+	{
+		switch (Condition)
+		{
+		case EFlipperCondition::Poor:
+			return TEXT("P");
+		case EFlipperCondition::Fair:
+			return TEXT("F");
+		case EFlipperCondition::Mint:
+			return TEXT("M");
+		default:
+			return TEXT("G");
+		}
+	}
+} // namespace FlipperCondition
+
 /**
  *  One concrete item in the world: a unique id plus the kind of item it is.
- *  Rarity, bTested and bWorks are rolled when the item is generated (Docs/FlipperSpec.md, Feature 2).
- *  The defaults describe a plain, known-working Common item, which is what hand-made test items get.
+ *  Rarity, Condition, Traits, bTested and bWorks are rolled when the item is generated (Docs/FlipperSpec.md, Features 2 and 7).
+ *  The defaults describe a plain, known-working Common, Good-condition item with no traits, which is what hand-made
+ *  test items get.
  */
 USTRUCT(BlueprintType)
 struct FFlipperItemInstance
@@ -65,6 +127,14 @@ struct FFlipperItemInstance
 	/** Rolled per item: two Game Boys can differ. Sets the border colour and a price multiplier. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EFlipperRarity Rarity = EFlipperRarity::Common;
+
+	/** Rolled per item and always visible. Sets a price multiplier and, for an Untested item, the chance that it works. Good is the baseline (x1). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	EFlipperCondition Condition = EFlipperCondition::Good;
+
+	/** Zero, one or two distinct traits, always visible. Their multipliers are multiplied into the item's Value. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	TArray<TObjectPtr<UFlipperTraitDefinition>> Traits;
 
 	/**
 	 *  True when the player knows whether the item works: it was Tested on the seller table (always working),

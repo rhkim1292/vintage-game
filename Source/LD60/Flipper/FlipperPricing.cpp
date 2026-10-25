@@ -7,12 +7,12 @@ float FlipperPricing::GetMoodMultiplier(EFlipperBuyerMood Mood, const FFlipperPr
 {
 	switch (Mood)
 	{
-	case EFlipperBuyerMood::Slow:
-		return Config.SlowMoodMultiplier;
-	case EFlipperBuyerMood::Hot:
-		return Config.HotMoodMultiplier;
-	default:
-		return Config.NormalMoodMultiplier;
+		case EFlipperBuyerMood::Slow:
+			return Config.SlowMoodMultiplier;
+		case EFlipperBuyerMood::Hot:
+			return Config.HotMoodMultiplier;
+		default:
+			return Config.NormalMoodMultiplier;
 	}
 }
 
@@ -58,6 +58,24 @@ int32 FlipperPricing::GetOffer(const FFlipperItemInstance& Item, const FFlipperP
 	return FMath::Max(1, FMath::RoundToInt32(Base * MoodMultiplier));
 }
 
+float FlipperPricing::GetTraitMultiplier(const FFlipperItemInstance& Item)
+{
+	// TODO: multiply together the ValueMultiplier of every non-null trait in Item.Traits; no traits gives 1.
+	float TotalMultiplierProduct = 1.f;
+
+	for (int32 i = 0; i < Item.Traits.Num(); i++)
+	{
+		if (!Item.Traits[i])
+		{
+			continue;
+		}
+
+		TotalMultiplierProduct *= Item.Traits[i]->ValueMultiplier;
+	}
+
+	return TotalMultiplierProduct;
+}
+
 int32 FlipperPricing::GetValue(const FFlipperItemInstance& Item, const FFlipperPricingConfig& Config)
 {
 	if (!Item.Definition)
@@ -65,7 +83,9 @@ int32 FlipperPricing::GetValue(const FFlipperItemInstance& Item, const FFlipperP
 		return 0;
 	}
 
-	return FMath::RoundToInt32(Item.Definition->BaseValue * GetRarityMultiplier(Item.Rarity, Config));
+	// TODO: also multiply by GetConditionMultiplier(Item.Condition, Config) and GetTraitMultiplier(Item), then round
+	// once at the end (rounding after each step would drift by a dollar on some items).
+	return FMath::RoundToInt32(Item.Definition->BaseValue * GetRarityMultiplier(Item.Rarity, Config) * GetConditionMultiplier(Item.Condition, Config) * GetTraitMultiplier(Item));
 }
 
 int32 FlipperPricing::GetScrapValue(const FFlipperItemInstance& Item, const FFlipperPricingConfig& Config)
