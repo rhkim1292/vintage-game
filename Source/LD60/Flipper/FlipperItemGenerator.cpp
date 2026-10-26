@@ -2,6 +2,7 @@
 
 #include "FlipperItemGenerator.h"
 #include "FlipperItemDefinition.h"
+#include "FlipperRandom.h"
 #include "InventoryGrid.h"
 
 void UFlipperItemGenerator::Init(const TArray<UFlipperItemDefinition*>& InDefinitions, const FFlipperGenerationConfig& InConfig, const FFlipperPricingConfig& InPricing, const TArray<UFlipperTraitDefinition*>& InTraits)
@@ -98,48 +99,11 @@ EFlipperCondition UFlipperItemGenerator::RollCondition(FRandomStream& Random) co
 																					   : EFlipperCondition::Mint;
 }
 
-namespace
-{
-	/**
-	 *  Picks an index into Weights by relative weight, taking exactly one number from Random. A weight of 0 never wins.
-	 *  Returns INDEX_NONE when no weight is above 0 (the number is still taken).
-	 */
-	int32 RollWeightedIndex(const TArray<float>& Weights, FRandomStream& Random)
-	{
-		float TotalWeight = 0.f;
-		for (const float Weight : Weights)
-		{
-			TotalWeight += FMath::Max(Weight, 0.f);
-		}
-
-		// Same running-total walk as RollDefinition: each index owns the stretch [previous total, new total).
-		const float Roll = Random.GetFraction() * TotalWeight;
-		float		RunningTotal = 0.f;
-		int32		LastUsable = INDEX_NONE;
-		for (int32 Index = 0; Index < Weights.Num(); ++Index)
-		{
-			if (Weights[Index] <= 0.f)
-			{
-				continue;
-			}
-			RunningTotal += Weights[Index];
-			LastUsable = Index;
-			if (Roll < RunningTotal)
-			{
-				return Index;
-			}
-		}
-
-		// Only reachable through float rounding (or with no weight at all): give the leftover to the last index that has weight.
-		return LastUsable;
-	}
-} // namespace
-
 TArray<TObjectPtr<UFlipperTraitDefinition>> UFlipperItemGenerator::RollTraits(FRandomStream& Random) const
 {
 	// Step 1: how many traits. The index that wins IS the count (0, 1 or 2). It always takes one number from Random,
 	// and with every weight at 0 it gives INDEX_NONE, which means no traits.
-	const int32 Count = FMath::Max(0, RollWeightedIndex({ Config.NoTraitsWeight, Config.OneTraitWeight, Config.TwoTraitsWeight }, Random));
+	const int32 Count = FMath::Max(0, FlipperRandom::RollWeightedIndex({ Config.NoTraitsWeight, Config.OneTraitWeight, Config.TwoTraitsWeight }, Random));
 
 	// Step 2: pick that many distinct traits. Only traits that can win are candidates. Each pick takes one number
 	// and takes the winner out of the pool, so the same trait never comes up twice on one item.
@@ -157,7 +121,7 @@ TArray<TObjectPtr<UFlipperTraitDefinition>> UFlipperItemGenerator::RollTraits(FR
 	TArray<TObjectPtr<UFlipperTraitDefinition>> Picked;
 	while (Picked.Num() < Count && !Candidates.IsEmpty())
 	{
-		const int32 Index = RollWeightedIndex(Weights, Random);
+		const int32 Index = FlipperRandom::RollWeightedIndex(Weights, Random);
 		if (Index == INDEX_NONE)
 		{
 			break;

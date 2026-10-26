@@ -239,3 +239,32 @@ Full write-up: `Docs/FlipperItemDataFull-design.md`. Extends Feature 2 (item dat
 - **Collector requests:** match items by tags (traits, categories), works flag, rarity and condition.
 - **Debt, credit limit and interest:** unaffected by this feature.
 - **Gameplay traits, opening a lot in the Garage:** deferred (see the write-up).
+
+---
+
+## Feature 8: Collectors with requests (post-jam)
+
+Full write-up: `Docs/FlipperCollectors-design.md`. Extends Feature 5 (selling). Each day three **collectors** appear, each with one **request** of 1 to 3 clauses (a category tag, a trait tag, must work, at least a condition, at least a rarity; weights 40 / 40 / 20). The day's requests are shown from the start of the Market phase and gone when the Sell phase ends. Each request is built from a real item on that day's seller table (own random stream), so it can always be met. In the Sell phase the right-hand panel shows a card per collector plus a permanent pawn shop card. Dragging a trunk item onto a card sells it if it matches (a refused drop snaps back); Shift-click sells to the best-paying matching collector, else the pawn shop. A collector pays the plain offer times the daily mood times a premium by clause count (x1.25 / x1.5 / x1.75), rounded once, and buys one item, then the card shows Sold. Only a Tested, working item satisfies must-work. The pawn shop takes anything, any number of times, at the plain offer (pawn shop fraction 1.0). Holding an item shows each card's payout or the reason it is refused, and hovering a card outlines the trunk items that satisfy it.
+
+### Locked decisions
+
+- **Collectors are drop-target cards.** *Rejected:* one counter with a read-only request list; a queue of collectors one at a time.
+- **Requests last one day, visible from the start of Market.** *Rejected:* revealed only at the Sell phase; standing requests for several days.
+- **The pawn shop stays at the plain offer.** *Rejected:* no pawn shop; a fixed 70 percent rate.
+- **Untested items cannot satisfy must-work.** *Rejected:* accept and pay scrap if dead; accept and ignore the flag.
+- **Requests are built from the day's table.** *Rejected:* independent random requests; also building from the trunk.
+- **A collector buys once.** *Rejected:* unlimited buying; a quantity on the request.
+- **The premium grows with the clause count.** *Rejected:* one flat premium; a fixed dollar price on the card.
+
+### Routine choices
+
+- **Five clause kinds.** *Rejected:* tags and works only; naming one item.
+- **3 collectors a day, 1 to 3 clauses.** *Rejected:* a ramp over the run; 4 collectors with 1 or 2 clauses.
+- **Shift-click falls through to the pawn shop.** *Rejected:* doing nothing when no collector matches.
+- **Collectors are names from a small data asset.** *Rejected:* archetypes with interests; unnamed cards.
+- **Live payout and a trunk highlight while choosing.** *Rejected:* request text only; payout without the highlight.
+- All numbers are data.
+
+### Open
+
+- **Where the board lives during Market and Garage** (the right-hand panel is the seller table, then hidden): a layout decision at implementation.
