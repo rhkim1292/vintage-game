@@ -40,12 +40,95 @@ bool FlipperRequests::Matches(const FFlipperItemInstance& Item, const FFlipperRe
 
 FFlipperRequest FlipperRequests::RollRequest(const FFlipperItemInstance& Source, const FFlipperRequestConfig& Config, FRandomStream& Random)
 {
-	// TODO: build one request from Source (see the header for the pool, the clause count and the 8 numbers).
-	// Hints: take all 8 numbers up front, in the order the header lists them, before looking at the pool: that is
-	// what keeps the stream position the same on every path. FlipperRandom::RollWeightedIndex gives the clause count
-	// (index 0 is one clause). For "which kinds, in what order", give each of the 5 kinds a random sort key, then walk
-	// the kinds from the lowest key up and take the ones that are in the pool until you have the count.
-	return FFlipperRequest();
+	enum EClauseKind : int32
+	{
+		CategoryClause,
+		TraitClause,
+		MustWorkClause,
+		ConditionClause,
+		RarityClause,
+		ClauseKindCount
+	};
+
+	// What Source can supply. Nothing is drawn here, so the pool can differ per source without moving the stream.
+	TArray<FGameplayTag> CategoryTags;
+	if (Source.Definition)
+	{
+		Source.Definition->Categories.GetGameplayTagArray(CategoryTags);
+	}
+	TArray<FGameplayTag> TraitTags;
+	for (const UFlipperTraitDefinition* Trait : Source.Traits)
+	{
+		if (Trait && Trait->Tag.IsValid())
+		{
+			TraitTags.Add(Trait->Tag);
+		}
+	}
+
+	const bool InPool[ClauseKindCount] = {
+		!CategoryTags.IsEmpty(),
+		!TraitTags.IsEmpty(),
+		true,
+		Source.Condition > EFlipperCondition::Poor,
+		Source.Rarity > EFlipperRarity::Common,
+	};
+	int32 PoolSize = 0;
+	for (const bool bAvailable : InPool)
+	{
+		PoolSize += bAvailable ? 1 : 0;
+	}
+
+	// All 8 numbers, in the header's order and taken on every path. RandHelper(0) would take none, so the picks use at least 1.
+	const int32 CountIndex = FlipperRandom::RollWeightedIndex({ Config.OneClauseWeight, Config.TwoClausesWeight, Config.ThreeClausesWeight }, Random);
+	const int32 CategoryPick = Random.RandHelper(FMath::Max(1, CategoryTags.Num()));
+	const int32 TraitPick = Random.RandHelper(FMath::Max(1, TraitTags.Num()));
+	float		SortKeys[ClauseKindCount];
+	for (float& SortKey : SortKeys)
+	{
+		SortKey = Random.GetFraction();
+	}
+
+	// Index 0 is one clause. All-zero weights give INDEX_NONE: fall back to one clause. The pool always has must-work, so it is never empty.
+	const int32 Wanted = FMath::Min(FMath::Max(1, CountIndex + 1), PoolSize);
+
+	// Try the kinds from the lowest sort key up (ties by kind, so the order is always the same), and take the ones in the pool.
+	TArray<int32> Order = { CategoryClause, TraitClause, MustWorkClause, ConditionClause, RarityClause };
+	Order.Sort([&SortKeys](const int32 A, const int32 B) { return SortKeys[A] != SortKeys[B] ? SortKeys[A] < SortKeys[B] : A < B; });
+
+	FFlipperRequest Request;
+	int32			Taken = 0;
+	for (const int32 Kind : Order)
+	{
+		if (Taken >= Wanted)
+		{
+			break;
+		}
+		if (!InPool[Kind])
+		{
+			continue;
+		}
+
+		switch (Kind)
+		{
+		case CategoryClause:
+			Request.RequiredTags.AddTag(CategoryTags[CategoryPick]);
+			break;
+		case TraitClause:
+			Request.RequiredTags.AddTag(TraitTags[TraitPick]);
+			break;
+		case MustWorkClause:
+			Request.bMustWork = true;
+			break;
+		case ConditionClause:
+			Request.MinCondition = Source.Condition;
+			break;
+		case RarityClause:
+			Request.MinRarity = Source.Rarity;
+			break;
+		}
+		++Taken;
+	}
+	return Request;
 }
 
 int32 FlipperRequests::GetCollectorOffer(const FFlipperItemInstance& Item, const FFlipperRequest& Request, const FFlipperPricingConfig& Pricing, const FFlipperRequestConfig& Config, float MoodMultiplier)

@@ -504,7 +504,8 @@ bool FFlipperRequestBoardRequestsTest::RunTest(const FString& Parameters)
 	TArray<FFlipperItemInstance> Distinct;
 	for (const TCHAR* CategoryTag : { TEXT("Item.Category.Audio"), TEXT("Item.Category.Video"), TEXT("Item.Category.Photo"), TEXT("Item.Category.Office"), TEXT("Item.Category.Telecom") })
 	{
-		Distinct.Add(G.MakeItem({ CategoryTag }));
+		// Poor and Common (MakeItem defaults to Good), so the pool really is just a category and must-work.
+		Distinct.Add(G.MakeItem({ CategoryTag }, {}, EFlipperRarity::Common, EFlipperCondition::Poor));
 	}
 	for (int32 Seed = 1; Seed <= 100; ++Seed)
 	{
