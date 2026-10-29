@@ -118,5 +118,5 @@ Not yet built. These follow from the decisions and from reading the current code
 
 ## Open threads
 
-- **Where the board lives during Market and Garage.** The right-hand panel is the seller table during Market and hidden during Garage, so the requests need a place of their own. The proposal to settle at implementation (a layout decision, not a rules one) is a compact strip of three request lines beside the day HUD that becomes the full cards in the Sell phase. It was not asked in the grill.
+- **Where the board lives during Market and Garage (SETTLED 2026-10-28, at scaffold stage 2).** One board widget sits directly under the day HUD in the right column: a compact strip of three request lines in Market and Garage that grows into the full collector cards plus the pawn shop card in Sell, with the seller table below it. The screen block gets about 90 px taller. Rejected: a narrow strip under the trunk (only 256 px wide, in a different place from the Sell cards); full cards in Garage and Sell with a strip only in Market (two looks for the same data).
 - **How the premium is shown on a card.** Written as a multiplier ("x1.5") or as the live payout only. Left to the presentation step.

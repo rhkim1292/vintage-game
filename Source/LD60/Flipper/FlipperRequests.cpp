@@ -56,6 +56,7 @@ FFlipperRequest FlipperRequests::RollRequest(const FFlipperItemInstance& Source,
 	{
 		Source.Definition->Categories.GetGameplayTagArray(CategoryTags);
 	}
+
 	TArray<FGameplayTag> TraitTags;
 	for (const UFlipperTraitDefinition* Trait : Source.Traits)
 	{
@@ -110,21 +111,21 @@ FFlipperRequest FlipperRequests::RollRequest(const FFlipperItemInstance& Source,
 
 		switch (Kind)
 		{
-		case CategoryClause:
-			Request.RequiredTags.AddTag(CategoryTags[CategoryPick]);
-			break;
-		case TraitClause:
-			Request.RequiredTags.AddTag(TraitTags[TraitPick]);
-			break;
-		case MustWorkClause:
-			Request.bMustWork = true;
-			break;
-		case ConditionClause:
-			Request.MinCondition = Source.Condition;
-			break;
-		case RarityClause:
-			Request.MinRarity = Source.Rarity;
-			break;
+			case CategoryClause:
+				Request.RequiredTags.AddTag(CategoryTags[CategoryPick]);
+				break;
+			case TraitClause:
+				Request.RequiredTags.AddTag(TraitTags[TraitPick]);
+				break;
+			case MustWorkClause:
+				Request.bMustWork = true;
+				break;
+			case ConditionClause:
+				Request.MinCondition = Source.Condition;
+				break;
+			case RarityClause:
+				Request.MinRarity = Source.Rarity;
+				break;
 		}
 		++Taken;
 	}

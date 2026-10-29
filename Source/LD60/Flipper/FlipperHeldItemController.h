@@ -21,6 +21,15 @@ using FFlipperTransferApprover = TFunction<bool(const UInventoryGrid* From, cons
 /** Told that a move between two grids is about to happen (see UFlipperHeldItemController::TransferCommitted). */
 using FFlipperTransferCommitted = TFunction<void(const UInventoryGrid* From, const UInventoryGrid* To, FFlipperItemInstance& Item)>;
 
+/** May the item be sold to this buyer (a collector index, or FlipperBuyer::PawnShop)? Consulted for every sale to a card. */
+using FFlipperBuyerApprover = TFunction<bool(int32 Buyer, const FFlipperItemInstance& Item)>;
+
+/** Told that a sale to Buyer is about to happen; the item is used up afterwards. */
+using FFlipperBuyerCommitted = TFunction<void(int32 Buyer, FFlipperItemInstance& Item)>;
+
+/** Picks the buyer a Shift-click sells the item to. */
+using FFlipperBuyerChooser = TFunction<int32(const FFlipperItemInstance& Item)>;
+
 /**
  *  The one held-item state machine behind both input styles (press-drag-release and click-to-pick-up /
  *  click-to-place). Shared by the trunk and seller-table widgets. Pure logic: no widgets, no mouse API.
@@ -90,6 +99,18 @@ public:
 	 */
 	TFunction<bool(UInventoryGrid* Grid, FIntPoint Cell)> PickupIntercept;
 
+	/**
+	 *  May the item be sold to this buyer (a collector card, or FlipperBuyer::PawnShop)? Unbound = NO sale to any
+	 *  buyer (unlike the grid approver: a sale needs a rule that says who pays what).
+	 */
+	FFlipperBuyerApprover BuyerApprover;
+
+	/** Told that a sale to Buyer is about to happen, once, just before the item is used up (the rule pays here). */
+	FFlipperBuyerCommitted BuyerCommitted;
+
+	/** Which buyer a Shift-click sells to (the rule picks the best-paying one). Unbound = the pawn shop. */
+	FFlipperBuyerChooser BuyerChooser;
+
 	/** Fired after a pick-up, rotation, drop, snap-back or cancel. */
 	FOnHeldItemChanged OnChanged;
 
@@ -137,6 +158,30 @@ public:
 	 *  item at Cell, nothing fits in To, or the approver refuses. The caller shakes the item on false.
 	 */
 	bool QuickTransfer(UInventoryGrid* From, FIntPoint Cell, UInventoryGrid* To);
+
+	// -----------------------------------------------------------------------------------------------------------
+	// Buyer cards: the second kind of drop target (Docs/FlipperCollectors-design.md). A buyer is an int32: a collector's
+	// index on the board, or FlipperBuyer::PawnShop. The card widgets call these where the grid widgets call PointerUp.
+
+	/** Would dropping the held item on Buyer be accepted (BuyerApprover)? False when nothing is held. For the card's green or red. */
+	bool CanSellHeldTo(int32 Buyer) const;
+
+	/**
+	 *  Drops the held item on Buyer's card (a drag released over it, or the second click).
+	 *    - Nothing held: does nothing, returns false.
+	 *    - Refused by BuyerApprover: the item snaps back to where it came from, returns false.
+	 *    - Accepted: BuyerCommitted runs once with the held item, the item is used up (it is in no grid already), the
+	 *      controller resets, OnChanged fires, returns true.
+	 */
+	bool DropOnBuyer(int32 Buyer);
+
+	/**
+	 *  Shift-click on a card's behalf: sells the item covering Cell in From to the buyer BuyerChooser picks.
+	 *  Returns false and changes nothing if an item is currently held, From is null, there is no item at Cell, or the
+	 *  chosen buyer refuses it (BuyerApprover). Otherwise runs BuyerCommitted, removes the item from From, returns true.
+	 *  It needs no room anywhere: a sale uses the item up.
+	 */
+	bool QuickSell(UInventoryGrid* From, FIntPoint Cell);
 
 private:
 	// TODO: whatever private helpers you want (for example a TryDrop and a SnapBack that PointerDown, PointerUp and

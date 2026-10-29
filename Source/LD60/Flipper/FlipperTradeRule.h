@@ -6,8 +6,10 @@
 #include "UObject/Object.h"
 #include "FlipperTypes.h"
 #include "FlipperPricing.h"
+#include "FlipperRequests.h"
 #include "FlipperTradeRule.generated.h"
 
+class UFlipperCollectorBoard;
 class UInventoryGrid;
 class UFlipperWallet;
 class UFlipperHeldItemController;
@@ -83,12 +85,59 @@ public:
 	 */
 	void CommitTransfer(const UInventoryGrid* From, const UInventoryGrid* To, FFlipperItemInstance& Item);
 
+	// -----------------------------------------------------------------------------------------------------------
+	// Selling to a buyer card (Docs/FlipperCollectors-design.md). A buyer is named by an int32: a collector is its
+	// index on the board, the pawn shop is FlipperBuyer::PawnShop (-1). These sit beside the grid-to-grid sale above,
+	// which stays until the cards are in the game.
+
+	/** The day's collectors. Null (the default) means an empty board: only the pawn shop buys. */
+	void SetBoard(UFlipperCollectorBoard* InBoard) { Board = InBoard; }
+
+	/** The collectors' premium numbers. Defaults to FFlipperRequestConfig(). */
+	void SetRequestConfig(const FFlipperRequestConfig& InConfig) { RequestConfig = InConfig; }
+
+	/**
+	 *  May Item be sold to Buyer right now? Does not change anything.
+	 *    - Selling must be open (IsSellOpen), or the answer is no for every buyer.
+	 *    - FlipperBuyer::PawnShop: yes, any item, any number of times.
+	 *    - A collector index: yes only if it is on the board, has not bought yet (not bSold), and FlipperRequests::Matches
+	 *      says the item satisfies its request. (An Untested item never satisfies must-work; Matches already says so.)
+	 *    - Any other index (not on the board): no.
+	 */
+	bool CanSellTo(int32 Buyer, const FFlipperItemInstance& Item) const;
+
+	/**
+	 *  What Buyer would pay for Item today, whether or not CanSellTo says yes (the UI shows the payout of the buyers that
+	 *  accept it). Rounded once.
+	 *    - FlipperBuyer::PawnShop: FlipperPricing::GetOffer with today's multiplier times PricingConfig.PawnShopFraction.
+	 *    - A collector: FlipperRequests::GetCollectorOffer with today's multiplier (it applies the request's premium).
+	 *    - Any other index: 0.
+	 */
+	int32 GetPayout(int32 Buyer, const FFlipperItemInstance& Item) const;
+
+	/**
+	 *  Where Shift-click sends Item: the collector that pays the MOST among those CanSellTo says yes to (a tie goes to the
+	 *  lower index, the first card), or FlipperBuyer::PawnShop when no collector will take it.
+	 */
+	int32 FindBestBuyer(const FFlipperItemInstance& Item) const;
+
+	/**
+	 *  The sale is happening: pay GetPayout(Buyer, Item) into the wallet and, for a collector, close it on the board
+	 *  (MarkSold). The pawn shop stays open. The item is used up, so there is nothing to stamp on it. Only called after
+	 *  CanSellTo said yes.
+	 */
+	void CommitSale(int32 Buyer, FFlipperItemInstance& Item);
+
 private:
 	bool  bOpen = true;
 	bool  bSellOpen = false;
 	float OfferMultiplier = 1.f;
 
 	FFlipperPricingConfig PricingConfig;
+	FFlipperRequestConfig RequestConfig;
+
+	UPROPERTY()
+	TObjectPtr<UFlipperCollectorBoard> Board;
 
 	UPROPERTY()
 	TObjectPtr<UInventoryGrid> Table;

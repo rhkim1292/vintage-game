@@ -6,8 +6,11 @@
 #include "UObject/Object.h"
 #include "FlipperTypes.h"
 #include "FlipperPricing.h"
+#include "FlipperRequests.h"
 #include "FlipperDayLoop.generated.h"
 
+class UFlipperCollectorBoard;
+class UFlipperCollectorDefinition;
 class UInventoryGrid;
 class UFlipperHeldItemController;
 class UFlipperItemGenerator;
@@ -99,6 +102,20 @@ public:
 
 	/** The moods are rolled and scaled with these numbers. Call before StartRun; the default is FFlipperPricingConfig(). */
 	void SetPricingConfig(const FFlipperPricingConfig& InConfig) { PricingConfig = InConfig; }
+
+	/**
+	 *  The collectors (Docs/FlipperCollectors-design.md). Call before StartRun. Without a board the day has no collectors.
+	 *    - Entering Market rolls the day's board from the seller table that was just rolled, on its own FRandomStream
+	 *      (Seed + Day + a fixed offset, like the mood), so neither the table nor the mood change when requests do.
+	 *    - Leaving Sell clears the board: requests never carry over to the next day.
+	 */
+	void SetBoard(UFlipperCollectorBoard* InBoard) { Board = InBoard; }
+
+	/** The names the collectors are given (can be empty: the cards then have no name). Call before StartRun. */
+	void SetCollectorDefinitions(const TArray<UFlipperCollectorDefinition*>& InDefinitions) { CollectorDefinitions = InDefinitions; }
+
+	/** How many collectors come and what they ask for. Call before StartRun; the default is FFlipperRequestConfig(). */
+	void SetRequestConfig(const FFlipperRequestConfig& InConfig) { RequestConfig = InConfig; }
 
 	/** The wallet the rent is checked against when the run is Finished. Without one the result stays InProgress. Call before StartRun. */
 	void SetWallet(UFlipperWallet* InWallet) { Wallet = InWallet; }
@@ -196,9 +213,18 @@ private:
 	FFlipperPricingConfig PricingConfig;
 	EFlipperBuyerMood	  Mood = EFlipperBuyerMood::Normal;
 
+	UPROPERTY()
+	TObjectPtr<UFlipperCollectorBoard> Board;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UFlipperCollectorDefinition>> CollectorDefinitions;
+
+	FFlipperRequestConfig RequestConfig;
+
 	void EnterPhase(EFlipperPhase NewPhase);
 	void ClearSellerTable();
 	void RollSellerTable();
 	void RollMood();
+	void RollBoard();
 	void ClearBoughtFlags();
 };

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FlipperTradeRule.h"
+#include "FlipperCollectorBoard.h"
 #include "FlipperHeldItemController.h"
 #include "FlipperWallet.h"
 #include "InventoryGrid.h"
@@ -31,6 +32,20 @@ void UFlipperTradeRule::Bind(UFlipperHeldItemController* Controller)
 	};
 	Controller->TransferConsumes = [WeakThis](const UInventoryGrid* From, const UInventoryGrid* To, const FFlipperItemInstance&) {
 		return WeakThis.IsValid() && WeakThis->IsSale(From, To);
+	};
+
+	// The buyer cards: the controller asks, pays and picks through the rule, like the grid moves above.
+	Controller->BuyerApprover = [WeakThis](int32 Buyer, const FFlipperItemInstance& Item) {
+		return WeakThis.IsValid() && WeakThis->CanSellTo(Buyer, Item);
+	};
+	Controller->BuyerCommitted = [WeakThis](int32 Buyer, FFlipperItemInstance& Item) {
+		if (WeakThis.IsValid())
+		{
+			WeakThis->CommitSale(Buyer, Item);
+		}
+	};
+	Controller->BuyerChooser = [WeakThis](const FFlipperItemInstance& Item) {
+		return WeakThis.IsValid() ? WeakThis->FindBestBuyer(Item) : FlipperBuyer::PawnShop;
 	};
 }
 
@@ -99,4 +114,46 @@ void UFlipperTradeRule::CommitTransfer(const UInventoryGrid* From, const UInvent
 		Item.PaidPrice = 0;
 		Item.bBoughtThisPhase = false;
 	}
+}
+
+bool UFlipperTradeRule::CanSellTo(int32 Buyer, const FFlipperItemInstance& Item) const
+{
+	// TODO: see the contract in the header. Selling closed -> false; the pawn shop -> true; a collector -> on the board,
+	// not sold, and FlipperRequests::Matches; anything else -> false.
+	if (!IsSellOpen())
+	{
+		return false;
+	}
+
+	if (Buyer == FlipperBuyer::PawnShop)
+	{
+		return true;
+	}
+
+	const FFlipperCollector* Collector = Board->Find(Buyer);
+
+	if (Collector && !Collector->bSold && FlipperRequests::Matches(Item, Collector->Request))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+int32 UFlipperTradeRule::GetPayout(int32 Buyer, const FFlipperItemInstance& Item) const
+{
+	// TODO: the pawn shop is GetOffer's formula with the mood times PricingConfig.PawnShopFraction; a collector is
+	// FlipperRequests::GetCollectorOffer; anything else is 0. Mood and premium must reach GetOffer as ONE multiplier.
+	return 0;
+}
+
+int32 UFlipperTradeRule::FindBestBuyer(const FFlipperItemInstance& Item) const
+{
+	// TODO: the best-paying collector that CanSellTo says yes to (ties: the lower index), else the pawn shop.
+	return FlipperBuyer::PawnShop;
+}
+
+void UFlipperTradeRule::CommitSale(int32 Buyer, FFlipperItemInstance& Item)
+{
+	// TODO: Wallet->Add(GetPayout(Buyer, Item)); and for a collector, Board->MarkSold(Buyer).
 }

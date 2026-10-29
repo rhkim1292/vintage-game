@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FlipperDayLoop.h"
+#include "FlipperCollectorBoard.h"
+#include "FlipperCollectorDefinition.h"
 #include "FlipperHeldItemController.h"
 #include "FlipperItemGenerator.h"
 #include "FlipperTradeRule.h"
@@ -102,6 +104,7 @@ void UFlipperDayLoop::EndPhase()
 		EnterPhase(EFlipperPhase::Sell);
 		break;
 	case EFlipperPhase::Sell:
+		// TODO: the day's collectors leave when the Sell phase ends: clear the board (before the next phase is entered).
 		if (Day >= Config.DayCount)
 		{
 			EnterPhase(EFlipperPhase::Finished);
@@ -150,6 +153,7 @@ void UFlipperDayLoop::EnterPhase(EFlipperPhase NewPhase)
 		TimeLeft = Config.MarketSeconds;
 		RollMood();
 		RollSellerTable();
+		// TODO: roll the day's board here (it is built from the table that was just rolled). Call RollBoard().
 		break;
 	case EFlipperPhase::Garage:
 		TestChargesLeft = Config.TestChargesPerDay;
@@ -219,6 +223,13 @@ void UFlipperDayLoop::RollMood()
 		TradeRule->SetPricingConfig(PricingConfig);
 		TradeRule->SetOfferMultiplier(GetMoodMultiplier());
 	}
+}
+
+void UFlipperDayLoop::RollBoard()
+{
+	// TODO: with a Board: gather the Item of every FFlipperPlacedItem on the Table, make the board's own stream (compare
+	// RollMood: Seed + Day + an offset constant of your own), and Board->Roll(...) with CollectorDefinitions and RequestConfig.
+	// Without a Board or a Table: do nothing. (CollectorDefinitions is a TArray<TObjectPtr<...>>; Roll wants raw pointers.)
 }
 
 void UFlipperDayLoop::ClearBoughtFlags()

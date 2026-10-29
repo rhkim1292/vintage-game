@@ -90,6 +90,13 @@ struct FFlipperPricingConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
 	float HotMoodWeight = 25.f;
+
+	/**
+	 *  The pawn shop (the always-open last buyer, Docs/FlipperCollectors-design.md) pays the plain offer times this. 1 keeps
+	 *  today's single-buyer economy; lower it in the balance pass if collectors turn out to be too small an upgrade.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selling", meta = (ClampMin = 0))
+	float PawnShopFraction = 1.f;
 };
 
 /**

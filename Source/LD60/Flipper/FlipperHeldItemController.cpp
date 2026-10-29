@@ -222,3 +222,21 @@ void UFlipperHeldItemController::DropHeldItem(UInventoryGrid* Grid, FVector2D Ce
 	Init(DragThresholdPixels);
 	OnChanged.Broadcast();
 }
+
+bool UFlipperHeldItemController::CanSellHeldTo(int32 Buyer) const
+{
+	return IsHolding() && BuyerApprover && BuyerApprover(Buyer, HeldItem);
+}
+
+bool UFlipperHeldItemController::DropOnBuyer(int32 Buyer)
+{
+	// TODO: see the contract in the header. Hint: there is already one snap-back path and one place a drop ends
+	// (Init(...) then OnChanged), and a sale is a drop where the item is never placed.
+	return false;
+}
+
+bool UFlipperHeldItemController::QuickSell(UInventoryGrid* From, FIntPoint Cell)
+{
+	// TODO: see the contract in the header. QuickTransfer above is the nearest relative.
+	return false;
+}
