@@ -130,6 +130,11 @@ bool UFlipperTradeRule::CanSellTo(int32 Buyer, const FFlipperItemInstance& Item)
 		return true;
 	}
 
+	if (!Board)
+	{
+		return false;
+	}
+
 	const FFlipperCollector* Collector = Board->Find(Buyer);
 
 	if (Collector && !Collector->bSold && FlipperRequests::Matches(Item, Collector->Request))
@@ -142,9 +147,20 @@ bool UFlipperTradeRule::CanSellTo(int32 Buyer, const FFlipperItemInstance& Item)
 
 int32 UFlipperTradeRule::GetPayout(int32 Buyer, const FFlipperItemInstance& Item) const
 {
-	// TODO: the pawn shop is GetOffer's formula with the mood times PricingConfig.PawnShopFraction; a collector is
-	// FlipperRequests::GetCollectorOffer; anything else is 0. Mood and premium must reach GetOffer as ONE multiplier.
-	return 0;
+	// Mood and premium (or pawn fraction) reach GetOffer as ONE multiplier, so the offer is rounded once.
+	if (Buyer == FlipperBuyer::PawnShop)
+	{
+		return FlipperPricing::GetOffer(Item, PricingConfig, OfferMultiplier * PricingConfig.PawnShopFraction);
+	}
+
+	// Find is null for no board, a negative index and an index past the last card: all of them pay nothing.
+	const FFlipperCollector* Collector = Board ? Board->Find(Buyer) : nullptr;
+	if (!Collector)
+	{
+		return 0;
+	}
+
+	return FlipperRequests::GetCollectorOffer(Item, Collector->Request, PricingConfig, RequestConfig, OfferMultiplier);
 }
 
 int32 UFlipperTradeRule::FindBestBuyer(const FFlipperItemInstance& Item) const
